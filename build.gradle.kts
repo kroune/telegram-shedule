@@ -1,5 +1,8 @@
+@file:Suppress("SpellCheckingInspection")
+
 plugins {
     kotlin("jvm") version "1.8.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.20"
     id("org.jetbrains.kotlinx.dataframe") version "0.11.1"
     application
 }
@@ -16,7 +19,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:6.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("com.github.elbekD:kt-telegram-bot:2.2.0")
     implementation("org.jetbrains.kotlinx:dataframe:0.11.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
