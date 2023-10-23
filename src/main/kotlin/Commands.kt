@@ -1,14 +1,15 @@
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
 
+/**
+ * it creates /run chain (command), which should be executed to start the bot
+ */
 fun buildRunChain() {
     bot.chain("/run") {
-        if (updateJob != null) {
-            println("this bot is already running")
+        if (updateJob[it.chat.id] != null) {
             bot.sendMessage(it, "Вы уже запускали бота, используйте команду /configure если хотите настроить бота")
             bot.terminateChain(it.chat.id)
         } else {
-            println("first run")
             bot.sendMessage(
                 it, "Это чат бот, который будет отправлять расписание в ваш чат"
             )
@@ -17,34 +18,43 @@ fun buildRunChain() {
             )
         }
     }.then {
-        println("class - ${it.text}")
         bot.sendMessage(it, "Полученный класс - \"${it.text}\"")
-        chosenClass = it.text!!
-        start(it)
+        initializeChatValues(it, it.text!!)
     }.build()
 }
 
+/**
+ * it updates schedule manually
+ */
+fun buildUpdateChain() {
+    bot.onCommand("/update") {
+        if (updateJob[it.first.chat.id] != null) {
+            updateJob[it.first.chat.id]!!.cancel()
+            updateJob[it.first.chat.id] = null
+        }
+        launchScheduleUpdateCoroutine(it.first)
+    }
+}
+
+/**
+ * it creates /configure chain (command), which should be executed to configure the bot
+ */
 fun buildConfigureChain() {
     var stringState = 0
     bot.chain("/configure") {
-        println("configuring")
         bot.sendMessage(
-            it,
-            """
+            it, """
                 Список настроек: {
-                    'класс'
-                    'ссылка' (ссылка на расписание)
-                    'обновить' (принудительное обновление расписания) 
+                  'класс'
+                  'ссылка' (ссылка на расписание)
                 }
                 выведите 'стоп' если хотите завершить настройку     
             """.trimMargin()
         )
     }.then {
         when (it.text) {
-            "stop", "стоп" -> {
-                println("stop")
+            "stop", "стоп" ->
                 bot.terminateChain(it.chat.id)
-            }
 
             "class", "класс" -> {
                 bot.sendMessage(it, "Назовите ваш класс (например 10Д)")
@@ -59,12 +69,6 @@ fun buildConfigureChain() {
                 stringState = 1
             }
 
-            "update", "обновить" -> {
-                bot.sendMessage(it, "Обновляем...")
-                println("updating")
-                stringState = 2
-            }
-
             else -> {
                 bot.sendMessage(it, "Бот не смог распознать вашу команду")
                 bot.terminateChain(it.chat.id)
@@ -73,29 +77,20 @@ fun buildConfigureChain() {
     }.then {
         when (stringState) {
             0 -> {
-                println("class ${it.text}")
-                chosenClass = it.text!!
+                // TODO: check if class name is valid
+                chosenClass[it.chat.id] = it.text!!
                 bot.sendMessage(it, "Класс успешно обновлён")
             }
 
             1 -> {
-                println("link ${it.text}")
                 it.text!!.checkLink().let { result ->
-                    if (result == null) {
+                    if (result == null)
                         bot.sendMessage(it, "Не правильная ссылка")
-                    } else {
+                    else {
                         bot.sendMessage(it, "Ссылка обновлена")
-                        chosenLink = result
+                        chosenLink[it.chat.id] = result
                     }
                 }
-            }
-
-            2 -> {
-                if (updateJob != null) {
-                    updateJob!!.cancel()
-                    updateJob = null
-                }
-                start(it)
             }
         }
     }.build()
