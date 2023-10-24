@@ -10,7 +10,7 @@ import logger.storeConfigs
  * token is generated per bot, should be deleted, when uploading somewhre
  */
 @Suppress("SpellCheckingInspection")
-const val token: String = "6722149681:AAFzavXlMrrYfimFunPC_-4fwVMnGWxc6pE"
+const val token: String = ""
 
 /**
  * default schedule link
@@ -50,7 +50,7 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 /**
  * it stores data for every class in schedule
  */
-val storedData: MutableMap<Long, MutableList<Pair<String, MutableList<Triple<String, String, String>>>>> =
+val storedSchedule: MutableMap<Long, MutableList<Pair<String, MutableList<Triple<String, String, String>>>>> =
     mutableMapOf()
 
 /**
@@ -61,9 +61,11 @@ val bot: Bot = Bot.createPolling(token)
 /**
  * here we initialize our commands and that bot
  */
-fun main() {
+suspend fun main() {
     loadData()
     buildRunChain()
+    buildOutputChain()
+    buildKillChain()
     buildUpdateChain()
     buildConfigureChain()
     bot.start()
@@ -71,53 +73,67 @@ fun main() {
 
 /**
  * initialize default values for a new chat
+ * @param chatId id of telegram chat
  */
-fun initializeChatValues(messageId: Long, className: String) {
-    initializedBot.add(messageId)
-    chosenClass[messageId] = className
-    chosenLink[messageId] = defaultLink
-    updateTime[messageId] = Pair(2, 0)
-    log(messageId, "initializing variables")
-    storeConfigs(messageId, className, defaultLink, Pair(2, 0))
+suspend fun initializeChatValues(chatId: Long, className: String) {
+    initializedBot.add(chatId)
+    chosenClass[chatId] = className
+    chosenLink[chatId] = defaultLink
+    updateTime[chatId] = Pair(2, 0)
+    log(chatId, "initializing variables")
+    storeConfigs(chatId, className, defaultLink, Pair(0, 30), storedSchedule[chatId])
+    launchScheduleUpdateCoroutine(chatId)
+}
+
+/**
+ * sends message in telegram chat
+ * @param chatId id of telegram chat
+ * @param text is a string we want to output
+ */
+suspend fun sendMessage(chatId: Long, text: String) {
     try {
-        updateJob[messageId] = myCoroutine.launch {
-            launchScheduleUpdateCoroutine(messageId)
-        }
+        bot.sendMessage(chatId.toChatId(), text)
     } catch (e: Exception) {
-        //crashReport(e)
+        println("An exception has occurred while sending message")
+        println(e.stackTraceToString())
+        println("text is \n$text")
     }
 }
 
 /**
- * this way it takes less space
- * @param text is a string we want to output
- */
-suspend fun sendMessage(messageId: Long, text: String) {
-    bot.sendMessage(messageId.toChatId(), text)
-}
-
-/**
- * this way it takes less space
+ * sends message in telegram chat
+ * @param message any message from telegram chat
  * @param text is a string we want to output
  */
 suspend fun sendMessage(message: Message, text: String) {
-    bot.sendMessage(message.chat.id.toChatId(), text)
+    sendMessage(message.chat.id, text)
 }
 
 /**
  * this checks if schedule has changed every 2 hours by default
+ * @param chatId id of telegram chat
  */
-suspend fun launchScheduleUpdateCoroutine(messageId: Long) {
-    while (true) {
-        log(messageId, "coroutine delay has passed")
-        getScheduleData(messageId).let {
-            if (it != storedData[messageId]) {
-                // TODO: make bot pin this message
-                storedData[messageId] = it
-                storedData[messageId]!!.displayInChat(messageId)
+suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
+    updateJob[chatId] = myCoroutine.launch {
+        try {
+            while (true) {
+                log(chatId, "coroutine delay has passed")
+                getScheduleData(chatId).let {
+                    if (it != storedSchedule[chatId]) {
+                        // TODO: make bot pin this message
+                        storedSchedule[chatId] = it
+                        storedSchedule[chatId]!!.displayInChat(chatId)
+                    }
+                }
+                // 1000L = 1 second
+                delay(1000L * (updateTime[chatId]!!.first * 3600 + updateTime[chatId]!!.second * 60))
             }
+        } catch (e: CancellationException) {
+            println("this is expected")
+        } catch (e: Exception) {
+            println(e.cause)
+            sendMessage(chatId, "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)")
+            log(chatId, e.stackTraceToString())
         }
-        // 1000L = 1 second
-        delay(1000L * (updateTime[messageId]!!.first * 60 + updateTime[messageId]!!.second))
     }
 }

@@ -2,12 +2,12 @@ package logger
 
 import chosenClass
 import chosenLink
-import kotlinx.coroutines.launch
-import kotlinx.serialization.*
-import kotlinx.serialization.json.*
+import initializedBot
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import launchScheduleUpdateCoroutine
-import myCoroutine
-import updateJob
+import storedSchedule
 import updateTime
 import java.io.File
 import java.text.SimpleDateFormat
@@ -18,57 +18,69 @@ import java.util.*
  * @param className - class name
  * @param link - link with schedule
  * @param time - update delay time
+ * @param schedule - stored schedule
  */
 @Serializable
-data class ConfigData(val className: String, val link: String, val time: Pair<Int, Int>)
+data class ConfigData(
+    val className: String,
+    val link: String,
+    val time: Pair<Int, Int>,
+    val schedule: MutableList<Pair<String, MutableList<Triple<String, String, String>>>>?
+)
 
 /**
  * it is used to log debug info
  */
 fun log(chatId: Long, text: String) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
+    println("LOG: (id - $chatId) $currentDate $text")
     try {
-        val file = File("${chatId}.log")
-        if (!file.exists()) {
+        val file = File("logs/${chatId}.log")
+        if (!file.exists())
             file.createNewFile()
-            file.writeText(chosenClass[chatId]!!)
-        }
-        file.writeText("LOGGING: $currentDate $text")
+        file.appendText("\nLOG: $currentDate $text")
     } catch (e: Exception) {
-        println("an Exception occurred, during logging \n$e")
+        println("an Exception occurred, during logging \n${e.stackTraceToString()}")
     }
 }
 
 /**
  * stores config data in data/ folder
  */
-fun storeConfigs(chatId: Long, className: String, link: String, data: Pair<Int, Int>) {
-    val configData = ConfigData(className, link, data)
+fun storeConfigs(
+    chatId: Long,
+    className: String,
+    link: String,
+    data: Pair<Int, Int>,
+    schedule: MutableList<Pair<String, MutableList<Triple<String, String, String>>>>?
+) {
+    val configData = ConfigData(className, link, data, schedule)
     val encodedConfigData = Json.encodeToString(configData)
     val file = File("data/$chatId.json")
-    if (!file.exists()) {
+    if (!file.exists())
         file.createNewFile()
-    }
     file.writeText(encodedConfigData)
 }
 
 /**
  * loads data on program startup
  */
-fun loadData() {
+suspend fun loadData() {
     File("data/").walk().forEach {
-        if (it.isDirectory)
-            return@forEach
-        println(it.name)
-        val textFile = it.bufferedReader().use { it1 -> it1.readText() }
-        val obj = Json.decodeFromString<ConfigData>(textFile)
-        val chatId = it.name.dropLast(5).toLong()
-        chosenClass[chatId] = obj.className
-        chosenLink[chatId] = obj.link
-        updateTime[chatId] = obj.time
-        updateJob[chatId] = myCoroutine.launch {
-            launchScheduleUpdateCoroutine(chatId)
+        if (it.isDirectory) return@forEach
+        val textFile = it.bufferedReader().use { text ->
+            text.readText()
         }
-        println(obj)
+        val configData = Json.decodeFromString<ConfigData>(textFile)
+        val chatId = it.name.dropLast(5).toLong()
+        chosenClass[chatId] = configData.className
+        chosenLink[chatId] = configData.link
+        updateTime[chatId] = configData.time
+        initializedBot.add(chatId)
+        configData.schedule?.let { schedule ->
+            storedSchedule[chatId] = schedule
+        }
+        launchScheduleUpdateCoroutine(chatId)
+        println(configData)
     }
 }
