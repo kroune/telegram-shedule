@@ -1,3 +1,4 @@
+import com.elbekd.bot.model.toChatId
 import logger.log
 import logger.storeConfigs
 import org.jetbrains.kotlinx.dataframe.DataFrame
@@ -85,7 +86,7 @@ suspend fun getScheduleData(chatId: Long): MutableList<Pair<String, MutableList<
  *  etc...
  * @param chatId id of telegram chat
  */
-suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>>>.displayInChat(chatId: Long) {
+suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>>>.displayInChat(chatId: Long): MutableList<Long> {
     storeConfigs(
         chatId,
         chosenClass[chatId]!!,
@@ -93,6 +94,7 @@ suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>
         updateTime[chatId]!!,
         storedSchedule[chatId]!!
     )
+    val listOfMessagesId: MutableList<Long> = mutableListOf()
     log(chatId, "outputting schedule data")
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
     this.forEach {
@@ -112,8 +114,11 @@ suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>
             }
         }
         str = " ${it.first} \n" + str
-        sendMessage(chatId, str)
+        val id = sendMessage(chatId, str)
+        listOfMessagesId.add(id)
+        bot.pinChatMessage(chatId.toChatId(), id)
     }
+    return listOfMessagesId
 }
 
 /**

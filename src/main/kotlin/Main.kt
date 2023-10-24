@@ -90,13 +90,14 @@ suspend fun initializeChatValues(chatId: Long, className: String) {
  * @param chatId id of telegram chat
  * @param text is a string we want to output
  */
-suspend fun sendMessage(chatId: Long, text: String) {
-    try {
-        bot.sendMessage(chatId.toChatId(), text)
+suspend fun sendMessage(chatId: Long, text: String): Long {
+    return try {
+        bot.sendMessage(chatId.toChatId(), text).messageId
     } catch (e: Exception) {
         println("An exception has occurred while sending message")
         println(e.stackTraceToString())
         println("text is \n$text")
+        -1
     }
 }
 
@@ -105,8 +106,8 @@ suspend fun sendMessage(chatId: Long, text: String) {
  * @param message any message from telegram chat
  * @param text is a string we want to output
  */
-suspend fun sendMessage(message: Message, text: String) {
-    sendMessage(message.chat.id, text)
+suspend fun sendMessage(message: Message, text: String): Long {
+    return sendMessage(message.chat.id, text)
 }
 
 /**
