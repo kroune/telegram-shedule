@@ -38,7 +38,7 @@ fun log(chatId: Long, text: String) {
         val file = File("logs/${chatId}.log")
         if (!file.exists())
             file.createNewFile()
-        file.appendText("\nLOG: $currentDate $text")
+        file.appendText("LOG: $currentDate $text\n")
     } catch (e: Exception) {
         println("an Exception occurred, during logging \n${e.stackTraceToString()}")
     }
