@@ -8,17 +8,18 @@ import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import java.net.URL
 
+
 /**
  * loads data from provided url and converts it to mutableList
  * @param chatId id of telegram chat
  */
-suspend fun getScheduleData(chatId: Long): MutableList<Pair<String, MutableList<Triple<String, String, String>>>> {
+suspend fun getScheduleData(chatId: Long): MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>> {
     @Suppress("SpellCheckingInspection") val data =
         DataFrame.readCSV(URL("${chosenLink[chatId]}/gviz/tq?tqx=out:csv"))
 
     // schedule for a day
     lateinit var currentDay: Pair<String, MutableList<Triple<String, String, String>>>
-    val formattedData = mutableListOf<Pair<String, MutableList<Triple<String, String, String>>>>()
+    val formattedData = mutableListOf<Triple<String, MutableList<Triple<String, String, String>>, Long>>()
 
     log(chatId, "starting data update")
     try {
@@ -26,7 +27,7 @@ suspend fun getScheduleData(chatId: Long): MutableList<Pair<String, MutableList<
             data.getColumnOrNull(0)?.let { day ->
                 day[index].let { dayElement ->
                     if (!dayElement.empty()) {
-                        if (index != 0) formattedData.add(currentDay)
+                        if (index != 0) formattedData.add(Triple(currentDay.first, currentDay.second, -1L))
                         // clears currentDay value
                         currentDay = Pair(dayElement!!.toString(), mutableListOf())
                     }
@@ -73,7 +74,7 @@ suspend fun getScheduleData(chatId: Long): MutableList<Pair<String, MutableList<
         formattedData.clear()
         return formattedData
     }
-    formattedData.add(currentDay)
+    formattedData.add(Triple(currentDay.first, currentDay.second, -1L))
     return formattedData
 }
 
@@ -86,18 +87,14 @@ suspend fun getScheduleData(chatId: Long): MutableList<Pair<String, MutableList<
  *  etc...
  * @param chatId id of telegram chat
  */
-suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>>>.displayInChat(chatId: Long): MutableList<Long> {
-    storeConfigs(
-        chatId,
-        chosenClass[chatId]!!,
-        chosenLink[chatId]!!,
-        updateTime[chatId]!!,
-        storedSchedule[chatId]!!
-    )
-    val listOfMessagesId: MutableList<Long> = mutableListOf()
+suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>.displayInChat(
+    chatId: Long,
+    value: Boolean
+) {
+    val data: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>> = mutableListOf()
     log(chatId, "outputting schedule data")
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
-    this.forEach {
+    this.forEachIndexed { index, it ->
         var werePrevious = false
         var str = ""
         it.second.reversed().forEach { (lesson, teacher, classroom) ->
@@ -114,11 +111,23 @@ suspend fun MutableList<Pair<String, MutableList<Triple<String, String, String>>
             }
         }
         str = " ${it.first} \n" + str
-        val id = sendMessage(chatId, str)
-        listOfMessagesId.add(id)
-        bot.pinChatMessage(chatId.toChatId(), id)
+        if (value && storedSchedule[chatId]?.all { it.third != -1L } == true) {
+            val id = bot.editMessageText(chatId.toChatId(), storedSchedule[chatId]!![index].third, text = str)
+            data.add(Triple(it.first, it.second, id.messageId))
+        } else {
+            val id = sendMessage(chatId, str)
+            data.add(Triple(it.first, it.second, id))
+            bot.pinChatMessage(chatId.toChatId(), id)
+        }
     }
-    return listOfMessagesId
+    storedSchedule[chatId] = data
+    storeConfigs(
+        chatId,
+        chosenClass[chatId]!!,
+        chosenLink[chatId]!!,
+        updateTime[chatId]!!,
+        storedSchedule[chatId]!!
+    )
 }
 
 /**

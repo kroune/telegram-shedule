@@ -58,7 +58,7 @@ fun buildOutputChain() {
             sendMessage(it.first.chat.id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
-        storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id)
+        storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, false)
     }
 }
 

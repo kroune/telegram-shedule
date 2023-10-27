@@ -25,7 +25,7 @@ data class ConfigData(
     val className: String,
     val link: String,
     val time: Pair<Int, Int>,
-    val schedule: MutableList<Pair<String, MutableList<Triple<String, String, String>>>>?
+    val schedule: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>?
 )
 
 /**
@@ -35,6 +35,9 @@ fun log(chatId: Long, text: String) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
     println("LOG: (id - $chatId) $currentDate $text")
     try {
+        if (!File("logs/").exists()) {
+            File("logs/").mkdir()
+        }
         val file = File("logs/${chatId}.log")
         if (!file.exists())
             file.createNewFile()
@@ -52,7 +55,7 @@ fun storeConfigs(
     className: String,
     link: String,
     data: Pair<Int, Int>,
-    schedule: MutableList<Pair<String, MutableList<Triple<String, String, String>>>>?
+    schedule: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>?
 ) {
     val configData = ConfigData(className, link, data, schedule)
     val encodedConfigData = Json.encodeToString(configData)
@@ -66,6 +69,9 @@ fun storeConfigs(
  * loads data on program startup
  */
 suspend fun loadData() {
+    if (!File("data/").exists()) {
+        File("data/").mkdir()
+    }
     File("data/").walk().forEach {
         if (it.isDirectory) return@forEach
         val textFile = it.bufferedReader().use { text ->

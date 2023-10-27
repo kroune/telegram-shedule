@@ -10,7 +10,7 @@ import logger.storeConfigs
  * token is generated per bot, should be deleted, when uploading somewhre
  */
 @Suppress("SpellCheckingInspection")
-const val token: String = ""
+const val token: String = "6377325001:AAGT2ULf1RChoMHH-MkdBigN97ASAacFYEI"
 
 /**
  * default schedule link
@@ -50,7 +50,7 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 /**
  * it stores data for every class in schedule
  */
-val storedSchedule: MutableMap<Long, MutableList<Pair<String, MutableList<Triple<String, String, String>>>>> =
+val storedSchedule: MutableMap<Long, MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>> =
     mutableMapOf()
 
 /**
@@ -122,8 +122,7 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
                 getScheduleData(chatId).let {
                     if (it != storedSchedule[chatId]) {
                         // TODO: make bot pin this message
-                        storedSchedule[chatId] = it
-                        storedSchedule[chatId]!!.displayInChat(chatId)
+                        it.displayInChat(chatId, true)
                     }
                 }
                 // 1000L = 1 second
