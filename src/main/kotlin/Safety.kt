@@ -1,5 +1,6 @@
 import java.util.*
 
+
 /**
  * checks if a link is safe
  * note that every valid Google link contains 83 chars

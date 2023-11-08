@@ -7,6 +7,10 @@ import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.util.*
 
 
 /**
@@ -115,6 +119,7 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
             val id = bot.editMessageText(chatId.toChatId(), storedSchedule[chatId]!![index].third, text = str)
             data.add(Triple(it.first, it.second, id.messageId))
         } else {
+            processPin()
             val id = sendMessage(chatId, str)
             data.add(Triple(it.first, it.second, id))
             bot.pinChatMessage(chatId.toChatId(), id)
@@ -130,6 +135,17 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
     )
 }
 
+fun processPin() {
+    val day = LocalDate.now().getDayOfWeek().name
+    println(" C DATE is  $day")
+}
+
+fun getDate(idk: String): DayOfWeek? {
+    if (idk.contains("Понед")) {
+        return DayOfWeek.MONDAY
+    }
+    return null
+}
 /**
  * it is used to prevent "null" s, which appear if a line is missing from going to the chat
  */
