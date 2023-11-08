@@ -1,3 +1,4 @@
+import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
 import logger.log
 import logger.storeConfigs
@@ -14,8 +15,7 @@ import java.net.URL
  * @param chatId id of telegram chat
  */
 suspend fun getScheduleData(chatId: Long): MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>> {
-    @Suppress("SpellCheckingInspection") val data =
-        DataFrame.readCSV(URL("${chosenLink[chatId]}/gviz/tq?tqx=out:csv"))
+    @Suppress("SpellCheckingInspection") val data = DataFrame.readCSV(URL("${chosenLink[chatId]}/gviz/tq?tqx=out:csv"))
 
     // schedule for a day
     lateinit var currentDay: Pair<String, MutableList<Triple<String, String, String>>>
@@ -35,34 +35,27 @@ suspend fun getScheduleData(chatId: Long): MutableList<Triple<String, MutableLis
             }
             if (index == data.size().nrow - 1 || element.removeNull()
                     .any { !it.isDigit() } || element.empty()
-            )
-                return@forEachIndexed
+            ) return@forEachIndexed
 
             element.let {
-                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
-                /*
+                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)/*
                 * it is located like
                 *
                 * subject teacher
                 *        classroom
                 */
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
-                if (subject.empty() || subject.isBlank())
-                    currentDay.second.add(
-                        Triple(
-                            "",
-                            "",
-                            ""
-                        )
+                if (subject.empty() || subject.isBlank()) currentDay.second.add(
+                    Triple(
+                        "", "", ""
                     )
+                )
                 else {
                     val teacher = data.getColumn(classColumnIndex + 1)[index].removeNull()
                     val classroom = data.getColumn(classColumnIndex + 1)[index + 1].removeNull()
                     currentDay.second.add(
                         Triple(
-                            subject,
-                            teacher,
-                            classroom
+                            subject, teacher, classroom
                         )
                     )
                 }
@@ -86,10 +79,10 @@ suspend fun getScheduleData(chatId: Long): MutableList<Triple<String, MutableLis
  *  Math {в 1} (Ivan Nikolay)
  *  etc...
  * @param chatId id of telegram chat
+ * @param shouldResendMessage we use it if user does /output
  */
 suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>.displayInChat(
-    chatId: Long,
-    value: Boolean
+    chatId: Long, shouldResendMessage: Boolean
 ) {
     val data: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>> = mutableListOf()
     log(chatId, "outputting schedule data")
@@ -100,8 +93,7 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
         it.second.reversed().forEach { (lesson, teacher, classroom) ->
             when (lesson) {
                 "" -> {
-                    if (werePrevious)
-                        str = "\n$str"
+                    if (werePrevious) str = "\n$str"
                 }
 
                 else -> {
@@ -111,9 +103,14 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
             }
         }
         str = " ${it.first} \n" + str
-        if (value && storedSchedule[chatId]?.all { it.third != -1L } == true) {
-            val id = bot.editMessageText(chatId.toChatId(), storedSchedule[chatId]!![index].third, text = str)
-            data.add(Triple(it.first, it.second, id.messageId))
+        if (shouldResendMessage && storedSchedule[chatId]?.all { it.third != -1L } == true) {
+
+            try {
+                val id = bot.editMessageText(chatId.toChatId(), storedSchedule[chatId]!![index].third, text = str)
+                data.add(Triple(it.first, it.second, id.messageId))
+            } catch (e: Exception) {
+                log(chatId, "new text matches previous one")
+            }
         } else {
             val id = sendMessage(chatId, str)
             data.add(Triple(it.first, it.second, id))
@@ -122,11 +119,7 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
     }
     storedSchedule[chatId] = data
     storeConfigs(
-        chatId,
-        chosenClass[chatId]!!,
-        chosenLink[chatId]!!,
-        updateTime[chatId]!!,
-        storedSchedule[chatId]!!
+        chatId, chosenClass[chatId]!!, chosenLink[chatId]!!, updateTime[chatId]!!, storedSchedule[chatId]!!
     )
 }
 

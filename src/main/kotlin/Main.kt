@@ -10,7 +10,7 @@ import logger.storeConfigs
  * token is generated per bot, should be deleted, when uploading somewhre
  */
 @Suppress("SpellCheckingInspection")
-const val token: String = "6377325001:AAGT2ULf1RChoMHH-MkdBigN97ASAacFYEI"
+const val token: String = "6722149681:AAEXMRoNVBOJi7EqXpHRkjkpuCu2duTVm1I"
 
 /**
  * default schedule link
