@@ -62,6 +62,7 @@ val bot: Bot = Bot.createPolling(token)
  * here we initialize our commands and that bot
  */
 suspend fun main() {
+    processPin()
     loadData()
     buildRunChain()
     buildOutputChain()
@@ -121,7 +122,6 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
                 log(chatId, "coroutine delay has passed")
                 getScheduleData(chatId).let {
                     if (it != storedSchedule[chatId]) {
-                        // TODO: make bot pin this message
                         it.displayInChat(chatId, true)
                     }
                 }
