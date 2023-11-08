@@ -42,7 +42,8 @@ suspend fun getScheduleData(chatId: Long): MutableList<Triple<String, MutableLis
             ) return@forEachIndexed
 
             element.let {
-                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)/*
+                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
+                /*
                 * it is located like
                 *
                 * subject teacher
@@ -113,7 +114,7 @@ suspend fun MutableList<Triple<String, MutableList<Triple<String, String, String
                 val id = bot.editMessageText(chatId.toChatId(), storedSchedule[chatId]!![index].third, text = str)
                 data.add(Triple(it.first, it.second, id.messageId))
             } catch (e: Exception) {
-                log(chatId, "new text matches previous one")
+                log(chatId, "new text matches previous one $e")
             }
         } else {
             processPin()
@@ -139,6 +140,7 @@ fun getDate(idk: String): DayOfWeek? {
     }
     return null
 }
+
 /**
  * it is used to prevent "null" s, which appear if a line is missing from going to the chat
  */
