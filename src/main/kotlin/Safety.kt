@@ -1,6 +1,3 @@
-import java.util.*
-
-
 /**
  * checks if a link is safe
  * note that every valid Google link contains 83 chars
@@ -20,7 +17,7 @@ fun String.checkLink(): String? {
  */
 fun String.checkClass(): String? {
     return if (this.length in 2..3 && this.last().isLetter() && this.dropLast(1).all { it.isDigit() })
-        this.first() + this.drop(1).uppercase(Locale.getDefault())
+        this.dropLast(1) + this.last().uppercase()
     else
         null
 }

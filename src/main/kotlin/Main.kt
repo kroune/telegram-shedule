@@ -5,12 +5,13 @@ import kotlinx.coroutines.*
 import logger.loadData
 import logger.log
 import logger.storeConfigs
+import java.time.DayOfWeek
 
 /**
- * token is generated per bot, should be deleted, when uploading somewhre
+ * token is generated per bot, should be deleted, when uploading somewhere
  */
 @Suppress("SpellCheckingInspection")
-const val token: String = "6722149681:AAEXMRoNVBOJi7EqXpHRkjkpuCu2duTVm1I"
+const val token: String = ""
 
 /**
  * default schedule link
@@ -50,7 +51,7 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 /**
  * it stores data for every class in schedule
  */
-val storedSchedule: MutableMap<Long, MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>> =
+val storedSchedule: MutableMap<Long, MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Long>>> =
     mutableMapOf()
 
 /**
@@ -62,7 +63,6 @@ val bot: Bot = Bot.createPolling(token)
  * here we initialize our commands and that bot
  */
 suspend fun main() {
-    processPin()
     loadData()
     buildRunChain()
     buildOutputChain()
@@ -111,6 +111,16 @@ suspend fun sendMessage(message: Message, text: String): Long {
     return sendMessage(message.chat.id, text)
 }
 
+fun MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Long>>.matchesWith(compare: MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Long>>?): Boolean {
+    if (compare == null)
+        return false
+    this.forEachIndexed { index, triple ->
+        if (triple.first != compare[index].first || triple.second != compare[index].second)
+            return false
+    }
+    return true
+}
+
 /**
  * this checks if schedule has changed every 2 hours by default
  * @param chatId id of telegram chat
@@ -121,15 +131,19 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
             while (true) {
                 log(chatId, "coroutine delay has passed")
                 getScheduleData(chatId).let {
-                    if (it != storedSchedule[chatId]) {
+                    if (!it.matchesWith(storedSchedule[chatId])) {
                         it.displayInChat(chatId, true)
+                        sendMessage(
+                            chatId,
+                            "Похоже расписание обновилось, если это не так, свяжитесь с создателем бота (@LichnyiSvetM)"
+                        )
                     }
                 }
                 // 1000L = 1 second
                 delay(1000L * (updateTime[chatId]!!.first * 3600 + updateTime[chatId]!!.second * 60))
             }
         } catch (e: CancellationException) {
-            println("this is expected")
+            log(chatId, "Cancellation exception caught, this is expected")
         } catch (e: Exception) {
             println(e.cause)
             sendMessage(chatId, "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)")

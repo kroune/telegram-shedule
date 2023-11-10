@@ -44,6 +44,7 @@ fun buildUpdateChain() {
             updateJob[it.first.chat.id] = null
         }
         launchScheduleUpdateCoroutine(it.first.chat.id)
+        sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрпеленные сообщения)")
     }
 }
 
@@ -103,7 +104,7 @@ fun buildConfigureChain() {
             """.trimMargin()
         )
     }.then {
-        when (it.text) {
+        when (it.text?.lowercase()) {
             "stop", "стоп" -> bot.terminateChain(it.chat.id)
 
             "class", "класс" -> {

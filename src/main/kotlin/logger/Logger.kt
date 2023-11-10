@@ -11,6 +11,7 @@ import storedSchedule
 import updateTime
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.DayOfWeek
 import java.util.*
 
 /**
@@ -25,7 +26,7 @@ data class ConfigData(
     val className: String,
     val link: String,
     val time: Pair<Int, Int>,
-    val schedule: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>?
+    val schedule: MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Long>>?
 )
 
 /**
@@ -33,7 +34,7 @@ data class ConfigData(
  */
 fun log(chatId: Long, text: String) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
-    println("LOG: (id - $chatId) $currentDate $text")
+    println("(id - $chatId) $currentDate $text")
     try {
         if (!File("logs/").exists()) {
             File("logs/").mkdir()
@@ -55,7 +56,7 @@ fun storeConfigs(
     className: String,
     link: String,
     data: Pair<Int, Int>,
-    schedule: MutableList<Triple<String, MutableList<Triple<String, String, String>>, Long>>?
+    schedule: MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Long>>?
 ) {
     val configData = ConfigData(className, link, data, schedule)
     val encodedConfigData = Json.encodeToString(configData)
