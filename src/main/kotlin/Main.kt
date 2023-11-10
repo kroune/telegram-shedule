@@ -10,7 +10,7 @@ import java.time.DayOfWeek
 /**
  * token is generated per bot, should be deleted, when uploading somewhere
  */
-@Suppress("SpellCheckingInspection")
+@Suppress("SpellCheckingInspection", "RedundantSuppression")
 const val token: String = ""
 
 /**
