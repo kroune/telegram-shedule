@@ -30,7 +30,7 @@ suspend fun initializeChatValues(chatId: Long, className: String) {
 }
 
 /**
- * this checks if schedule has changed every 2 hours by default
+ * this checks if schedule has changed every 30 minutes by default
  * @param chatId id of telegram chat
  */
 suspend fun launchScheduleUpdateCoroutine(chatId: Long) {

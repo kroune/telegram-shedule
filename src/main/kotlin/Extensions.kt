@@ -30,7 +30,7 @@ fun DayOfWeek?.russianName(): String {
  * (used for pinning messages (@see processPin))
  * @param text - representation of weekday in Russian
  */
-@Suppress("SpellCheckingInspection")
+@Suppress("SpellCheckingInspection", "RedundantSuppression")
 fun getDay(text: String): DayOfWeek? {
     text.lowercase().let {
         if (it.contains("поне")) return DayOfWeek.MONDAY
@@ -64,7 +64,10 @@ fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
             return false
         }
         message.lessonInfo.forEachIndexed { index1, lessonInfo ->
-            if (lessonInfo.lesson != compareMessage.lessonInfo[index1].lesson || lessonInfo.classroom != compareMessage.lessonInfo[index1].classroom || lessonInfo.teacher != compareMessage.lessonInfo[index1].teacher) {
+            if (lessonInfo.lesson != compareMessage.lessonInfo[index1].lesson ||
+                lessonInfo.classroom != compareMessage.lessonInfo[index1].classroom ||
+                lessonInfo.teacher != compareMessage.lessonInfo[index1].teacher
+            ) {
                 return false
             }
         }
