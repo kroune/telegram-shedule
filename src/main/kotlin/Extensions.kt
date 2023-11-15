@@ -1,71 +1,73 @@
+import data.UserSchedule
 import java.time.DayOfWeek
 
 
-fun DayOfWeek.getRussianName(): String {
+/**
+ * Adds Russian translation to week days
+ */
+fun DayOfWeek?.russianName(): String {
     when (this) {
-        DayOfWeek.MONDAY -> {
-            return "Понедельник"
-        }
+        DayOfWeek.MONDAY -> return "Понедельник"
 
-        DayOfWeek.TUESDAY -> {
-            return "Вторник"
-        }
+        DayOfWeek.TUESDAY -> return "Вторник"
 
-        DayOfWeek.WEDNESDAY -> {
-            return "Среда"
-        }
+        DayOfWeek.WEDNESDAY -> return "Среда"
 
-        DayOfWeek.THURSDAY -> {
-            return "Четверг"
-        }
+        DayOfWeek.THURSDAY -> return "Четверг"
 
-        DayOfWeek.FRIDAY -> {
-            return "Пятница"
-        }
+        DayOfWeek.FRIDAY -> return "Пятница"
 
-        DayOfWeek.SATURDAY -> {
-            return "Суббота"
-        }
+        DayOfWeek.SATURDAY -> return "Суббота"
 
-        DayOfWeek.SUNDAY -> {
-            return "Воскресенье"
-        }
+        DayOfWeek.SUNDAY -> return "Воскресенье"
+
+        null -> return ""
     }
 }
 
-fun getDate(idk: String): DayOfWeek? {
-    idk.lowercase().let {
-        if (it.contains("поне")) {
-            return DayOfWeek.MONDAY
-        }
-        if (it.contains("вт")) {
-            return DayOfWeek.TUESDAY
-        }
-        if (it.contains("ср")) {
-            return DayOfWeek.WEDNESDAY
-        }
-        if (it.contains("чет")) {
-            return DayOfWeek.THURSDAY
-        }
-        if (it.contains("пят")) {
-            return DayOfWeek.FRIDAY
-        }
-        if (it.contains("суб")) {
-            return DayOfWeek.SATURDAY
-        }
-        if (it.contains("вос")) {
-            return DayOfWeek.SUNDAY
-        }
+/**
+ * it is used to interpreter day of week's names and store them in a better format
+ * (used for pinning messages (@see processPin))
+ * @param text - representation of weekday in Russian
+ */
+@Suppress("SpellCheckingInspection")
+fun getDay(text: String): DayOfWeek? {
+    text.lowercase().let {
+        if (it.contains("поне")) return DayOfWeek.MONDAY
+
+        if (it.contains("вт")) return DayOfWeek.TUESDAY
+
+        if (it.contains("ср")) return DayOfWeek.WEDNESDAY
+
+        if (it.contains("чет")) return DayOfWeek.THURSDAY
+
+        if (it.contains("пят")) return DayOfWeek.FRIDAY
+
+        if (it.contains("суб")) return DayOfWeek.SATURDAY
+
+        if (it.contains("вос")) return DayOfWeek.SUNDAY
     }
     return null
 }
 
-fun MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Pair<Long, Boolean>>>.matchesWith(
-    compare: MutableList<Triple<DayOfWeek?, MutableList<Triple<String, String, String>>, Pair<Long, Boolean>>>?
-): Boolean {
-    if (compare == null) return false
-    this.forEachIndexed { index, (first, second, _) ->
-        if (first != compare[index].first || second != compare[index].second) return false
+/**
+ * it is used to understand if we need to edit a message
+ * (if our new text matches the previous one, it throws Telegram API error)
+ * @param compare - new schedule we want to compare
+ * (we compare everything except for messageInfo)
+ */
+fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
+    if (this == null) return false
+    this.messages.forEachIndexed { index, message ->
+        val compareMessage = compare.messages[index]
+        if (message.dayOfWeek != compareMessage.dayOfWeek) {
+            return false
+        }
+        message.lessonInfo.forEachIndexed { index1, lessonInfo ->
+            if (lessonInfo.lesson != compareMessage.lessonInfo[index1].lesson || lessonInfo.classroom != compareMessage.lessonInfo[index1].classroom || lessonInfo.teacher != compareMessage.lessonInfo[index1].teacher) {
+                return false
+            }
+        }
     }
     return true
 }

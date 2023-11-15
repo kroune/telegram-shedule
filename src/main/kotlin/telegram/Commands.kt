@@ -1,8 +1,24 @@
+package telegram
+
+import checkClass
+import checkLink
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
 import com.elbekd.bot.model.toChatId
-import logger.log
-import logger.storeConfigs
+import data.*
+import initializeChatValues
+import launchScheduleUpdateCoroutine
+
+/**
+ * it is used to initialize all chains of commands
+ */
+fun initializeChains() {
+    buildRunChain()
+    buildOutputChain()
+    buildKillChain()
+    buildUpdateChain()
+    buildConfigureChain()
+}
 
 /**
  * it creates /run chain (command), which should be executed to start the bot
@@ -18,6 +34,7 @@ fun buildRunChain() {
             sendMessage(it.chat.id, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
             sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
         }
+
     }.then {
         it.text!!.checkClass().let { checkedString ->
             if (checkedString != null) {
@@ -25,6 +42,7 @@ fun buildRunChain() {
                 initializeChatValues(it.chat.id, checkedString)
             } else sendMessage(it.chat.id, "Класс введен не верно")
         }
+
     }.build()
 }
 
@@ -44,7 +62,7 @@ fun buildUpdateChain() {
             updateJob[it.first.chat.id] = null
         }
         launchScheduleUpdateCoroutine(it.first.chat.id)
-        sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрпеленные сообщения)")
+        sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
     }
 }
 
@@ -73,6 +91,7 @@ fun buildKillChain() {
             confirmation = System.currentTimeMillis().toString()
             bot.sendMessage(it.chat.id.toChatId(), "do /confirm_$confirmation to force stop bot")
         } else bot.terminateChain(it.chat.id)
+
     }.then {
         if (it.text == "/confirm_$confirmation") {
             println("bot stopped")
@@ -129,6 +148,12 @@ fun buildConfigureChain() {
                     if (checkedString != null) {
                         sendMessage(it.chat.id, "Класс успешно обновлён")
                         chosenClass[it.chat.id] = checkedString
+                        if (updateJob[it.chat.id] != null) {
+                            updateJob[it.chat.id]!!.cancel()
+                            updateJob[it.chat.id] = null
+                        }
+                        launchScheduleUpdateCoroutine(it.chat.id)
+                        sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
                     } else {
                         sendMessage(it.chat.id, "Не правильный формат ввода класса")
                     }
@@ -141,6 +166,12 @@ fun buildConfigureChain() {
                     else {
                         sendMessage(it.chat.id, "Ссылка обновлена")
                         chosenLink[it.chat.id] = result
+                        if (updateJob[it.chat.id] != null) {
+                            updateJob[it.chat.id]!!.cancel()
+                            updateJob[it.chat.id] = null
+                        }
+                        launchScheduleUpdateCoroutine(it.chat.id)
+                        sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
                     }
                 }
             }
