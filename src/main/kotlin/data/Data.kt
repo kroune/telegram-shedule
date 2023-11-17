@@ -32,14 +32,86 @@ const val token: String = "6377325001:AAH4YvKnEOgz-v0ljWd5hCbEiRuyBjjh4aE"
 const val defaultLink: String = "https://docs.google.com/spreadsheets/d/1L9UjNOZx4p4VER11SCyU97M07QnfWsZWwldAAOR0gtM"
 
 /**
+ * it is used to make sure user did everything correctly
+ */
+val listOfClasses: Collection<String> = listOf(
+    "2А",
+    "2Б",
+    "2В",
+    "2Г",
+    "3А",
+    "3Б",
+    "3В",
+    "3Г",
+    "4А",
+    "4Б",
+    "4В",
+    "4Г",
+    "5А",
+    "5Б",
+    "5В",
+    "5Г",
+    "5И",
+    "5П",
+    "6А",
+    "6Б",
+    "6В",
+    "6Г",
+    "6П",
+    "7В",
+    "7О",
+    "7П",
+    "7А",
+    "7Б",
+    "7Г",
+    "8А",
+    "8Б",
+    "8В",
+    "8Г",
+    "8Д",
+    "8М",
+    "8Е",
+    "8У",
+    "8Ф",
+    "8Я",
+    "9А",
+    "9В",
+    "9Г",
+    "9Д",
+    "9М",
+    "9Е",
+    "9П",
+    "9У",
+    "9Ф",
+    "9Х",
+    "9Я",
+    "10Б",
+    "10В",
+    "10Г",
+    "10Д",
+    "10М",
+    "10Е",
+    "10И",
+    "10С",
+    "10У",
+    "10Ф",
+    "10Я",
+    "11А",
+    "11В",
+    "11Г",
+    "11Д",
+    "11М",
+    "11Е",
+    "11И",
+    "11У",
+    "11Ф",
+    "11Я"
+)
+
+/**
  * it is used to check if bot was initialized
  */
 val initializedBot: MutableSet<Long> = mutableSetOf()
-
-/**
- * it is used to store info about last pin update time
- */
-val previousDay: MutableMap<Long, DayOfWeek?> = mutableMapOf()
 
 /**
  * class name (10Д, 8А, 9М, etc...)
@@ -132,6 +204,7 @@ fun storeConfigs(
 ) {
     val configData = ConfigData(className, link, data, schedule)
     val encodedConfigData = Json.encodeToString(configData)
+    log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
     if (!file.exists()) file.createNewFile()
     file.writeText(encodedConfigData)
@@ -159,7 +232,7 @@ suspend fun loadData() {
             storedSchedule[chatId] = schedule!!
         }
         launchScheduleUpdateCoroutine(chatId)
-        println(configData)
+        log(chatId, configData.toString(), LogLevel.Debug)
     }
 }
 
@@ -175,7 +248,7 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
     lateinit var currentDay: Pair<DayOfWeek?, MutableList<LessonInfo>>
     val formattedData = mutableListOf<Message>()
 
-    log(chatId, "starting data update")
+    log(chatId, "starting data update", LogLevel.Info)
     try {
         // we iterate over first column, where lesson number is stored
         data.getColumnOrNull(1)?.forEachIndexed { index, element ->
@@ -188,7 +261,7 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
                         )
                     }
                     // clears currentDay value
-                    currentDay = Pair(getDay(dayElement!!.toString()), mutableListOf())
+                    currentDay = Pair(getDay(dayElement!!.toString(), chatId), mutableListOf())
                 }
             }
             // if we are the end of our dataFrame or row is empty
@@ -218,19 +291,22 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
             }
         }
     } catch (e: IllegalArgumentException) {
-        sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name")
+        val classNameVerification = listOfClasses.contains(chosenClass[chatId]) || chosenLink[chatId] != defaultLink
+        if (!classNameVerification) {
+            sendMessage(chatId, "Скорее всего вы не правильно ввели название класса")
+        } else {
+            sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
+        }
+        log(chatId, "Incorrect class name", LogLevel.Error)
         formattedData.clear()
-        // TODO: make it retry
-        // TODO: create a list of class and ask for confirm if it isn't there
-
         return UserSchedule(formattedData)
     } catch (e: IndexOutOfBoundsException) {
-        log(chatId, e.stackTraceToString())
-        log(chatId, "incorrect index")
+        log(chatId, e.stackTraceToString(), LogLevel.Error)
+        log(chatId, "incorrect index", LogLevel.Error)
     }
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
     )
+    log(chatId, "formatted data - $formattedData", LogLevel.Error)
     return UserSchedule(formattedData)
 }

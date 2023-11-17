@@ -7,6 +7,7 @@ import data.*
 import matchesWith
 import russianName
 import java.time.LocalDate
+import kotlin.IllegalStateException
 
 /**
  * it creates a telegram bot, using provided token
@@ -24,7 +25,7 @@ val bot: Bot = Bot.createPolling(token)
  * @param shouldResendMessage we use it if a user does /output
  */
 suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolean) {
-    log(chatId, "outputting schedule data")
+    log(chatId, "outputting schedule data", LogLevel.Info)
 
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
     this.messages.forEachIndexed { index, it ->
@@ -44,9 +45,11 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 
         messageText = " ${it.dayOfWeek.russianName()} \n$messageText"
 
-        if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.size > 0 && storedSchedule[chatId]!!.messages.all {
+        if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
+            storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
-            }) {
+            }
+        ) {
             if (!storedSchedule[chatId]!!.matchesWith(this)) {
                 try {
                     val id = bot.editMessageText(
@@ -57,8 +60,8 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
                     it.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    sendErrorMessage(chatId)
-                    log(chatId, "error ${storedSchedule[chatId]!!.messages} $e")
+                    sendErrorMessage(chatId, e)
+                    log(chatId, "error ${storedSchedule[chatId]!!.messages} $e", LogLevel.Error)
                 }
             }
         } else {
@@ -90,14 +93,16 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
  * sends message about error in telegram chat and to @LichnyiSvetM
  * @param chatId id of telegram chat
  */
-suspend fun sendErrorMessage(chatId: Long) {
+suspend fun sendErrorMessage(chatId: Long, e: Exception) {
     try {
         bot.sendMessage(
             chatId.toChatId(), "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)"
         ).messageId
-    } catch (e: Exception) {
+        bot.sendMessage((1376927355).toLong().toChatId(), "Во время работы бота произошла ошибка")
+        bot.sendMessage((1376927355).toLong().toChatId(), e.stackTraceToString())
+    } catch (e1: Exception) {
         println("An exception has occurred while sending message")
-        println(e.stackTraceToString())
+        println(e1.stackTraceToString())
         println("text is \n$\"Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)\"")
     }
 }
@@ -131,7 +136,6 @@ suspend fun processPin(chatId: Long) {
                     message.messageInfo.pinState = false
                 }
             }
-        } else sendErrorMessage(chatId)
+        } else sendErrorMessage(chatId, IllegalStateException("Message ID is -1L"))
     }
-    previousDay[chatId] = day
 }

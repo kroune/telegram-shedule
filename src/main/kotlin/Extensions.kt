@@ -1,4 +1,6 @@
+import data.LogLevel
 import data.UserSchedule
+import data.log
 import java.time.DayOfWeek
 
 
@@ -31,7 +33,7 @@ fun DayOfWeek?.russianName(): String {
  * @param text - representation of weekday in Russian
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-fun getDay(text: String): DayOfWeek? {
+fun getDay(text: String, chatId: Long): DayOfWeek? {
     text.lowercase().let {
         if (it.contains("поне")) return DayOfWeek.MONDAY
 
@@ -47,6 +49,7 @@ fun getDay(text: String): DayOfWeek? {
 
         if (it.contains("вос")) return DayOfWeek.SUNDAY
     }
+    log(chatId, "Error recognizing week day name - $text", LogLevel.Error)
     return null
 }
 
@@ -57,7 +60,7 @@ fun getDay(text: String): DayOfWeek? {
  * (we compare everything except for messageInfo)
  */
 fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
-    if (this == null) return false
+    if (this == null || this.messages.isEmpty()) return false
     this.messages.forEachIndexed { index, message ->
         val compareMessage = compare.messages[index]
         if (message.dayOfWeek != compareMessage.dayOfWeek) {

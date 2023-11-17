@@ -3,7 +3,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import telegram.*
-import java.time.LocalDate
 
 /**
  * here we initialize our commands and that bot
@@ -20,11 +19,11 @@ suspend fun main() {
  */
 suspend fun initializeChatValues(chatId: Long, className: String) {
     initializedBot.add(chatId)
-    previousDay[chatId] = LocalDate.now().dayOfWeek
     chosenClass[chatId] = className
     chosenLink[chatId] = defaultLink
-    updateTime[chatId] = Pair(2, 0)
-    log(chatId, "initializing variables")
+    updateTime[chatId] = Pair(0, 30)
+    log(chatId, "initializing variables", LogLevel.Info)
+    log(chatId, "class name - $className, chosen link - $defaultLink", LogLevel.Debug)
     storeConfigs(chatId, className, defaultLink, Pair(0, 30), storedSchedule[chatId])
     launchScheduleUpdateCoroutine(chatId)
 }
@@ -37,7 +36,7 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
     updateJob[chatId] = myScheduleCoroutine.launch {
         try {
             while (true) {
-                log(chatId, "coroutine delay has passed")
+                log(chatId, "coroutine delay has passed", LogLevel.Info)
                 getScheduleData(chatId).let {
                     if (!storedSchedule[chatId].matchesWith(it)) {
                         it.displayInChat(chatId, true)
@@ -49,14 +48,19 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
                 }
                 processPin(chatId)
                 // 1000L = 1 second
+                log(
+                    chatId,
+                    "coroutine delay - ${(updateTime[chatId]!!.first * 3600 + updateTime[chatId]!!.second * 60)}",
+                    LogLevel.Debug
+                )
                 delay(1000L * (updateTime[chatId]!!.first * 3600 + updateTime[chatId]!!.second * 60))
             }
         } catch (e: CancellationException) {
-            log(chatId, "Cancellation exception caught, this is expected")
+            log(chatId, "Cancellation exception caught, this is expected", LogLevel.Info)
         } catch (e: Exception) {
             println(e.cause)
-            sendErrorMessage(chatId)
-            log(chatId, e.stackTraceToString())
+            sendErrorMessage(chatId, e)
+            log(chatId, e.stackTraceToString(), LogLevel.Error)
         }
     }
 }

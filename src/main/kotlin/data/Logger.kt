@@ -4,11 +4,18 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+
+enum class LogLevel {
+    Debug, Info, Error
+}
+
 /**
  * it is used to log debug info
  */
-// TODO: add proper log warning level
-fun log(chatId: Long, text: String) {
+//TODO: add a safer exceptions catcher
+//TODO: add ban system
+//TODO: finish log level implementation
+fun log(chatId: Long, text: String, warningLevel: LogLevel) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
     println("(id - $chatId) $currentDate $text")
     try {

@@ -25,12 +25,13 @@ fun initializeChains() {
  */
 fun buildRunChain() {
     bot.chain("/start") {
-        log(it.chat.id, "started /start chain")
+        log(it.chat.id, "started /start chain", LogLevel.Info)
         if (initializedBot.contains(it.chat.id)) {
-            log(it.chat.id, "/start chain stopped due to bot, not being initialized")
+            log(it.chat.id, "/start chain stopped due to bot, not being initialized", LogLevel.Info)
             sendMessage(it.chat.id, "Вы уже запускали бота, используйте команду /configure если хотите настроить бота")
             bot.terminateChain(it.chat.id)
         } else {
+            log(it.chat.id, "/start chain started", LogLevel.Debug)
             sendMessage(it.chat.id, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
             sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
         }
@@ -51,9 +52,9 @@ fun buildRunChain() {
  */
 fun buildUpdateChain() {
     bot.onCommand("/update") {
-        log(it.first.chat.id, "starting /update chain")
+        log(it.first.chat.id, "starting /update chain", LogLevel.Info)
         if (!initializedBot.contains(it.first.chat.id)) {
-            log(it.first.chat.id, "/update chain stopped due to bot, not being initialized")
+            log(it.first.chat.id, "/update chain stopped due to bot, not being initialized", LogLevel.Info)
             sendMessage(it.first.chat.id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
@@ -61,6 +62,7 @@ fun buildUpdateChain() {
             updateJob[it.first.chat.id]!!.cancel()
             updateJob[it.first.chat.id] = null
         }
+        log(it.first.chat.id, "/update chain started", LogLevel.Debug)
         launchScheduleUpdateCoroutine(it.first.chat.id)
         sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
     }
@@ -71,12 +73,13 @@ fun buildUpdateChain() {
  */
 fun buildOutputChain() {
     bot.onCommand("/output") {
-        log(it.first.chat.id, "starting /output chain")
+        log(it.first.chat.id, "starting /output chain", LogLevel.Info)
         if (!initializedBot.contains(it.first.chat.id)) {
-            log(it.first.chat.id, "/output chain stopped due to bot, not being initialized")
+            log(it.first.chat.id, "/output chain stopped due to bot, not being initialized", LogLevel.Info)
             sendMessage(it.first.chat.id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
+        log(it.first.chat.id, "/output chain started", LogLevel.Debug)
         storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, false)
     }
 }
@@ -106,9 +109,9 @@ fun buildKillChain() {
 fun buildConfigureChain() {
     var stringState = 0
     bot.chain("/configure") {
-        log(it.chat.id, "starting /configure chain")
+        log(it.chat.id, "starting /configure chain", LogLevel.Info)
         if (!initializedBot.contains(it.chat.id)) {
-            log(it.chat.id, "/configure chain stopped due to bot, not being initialized")
+            log(it.chat.id, "/configure chain stopped due to bot, not being initialized", LogLevel.Info)
             sendMessage(it, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             bot.terminateChain(it.chat.id)
             return@chain
@@ -127,16 +130,19 @@ fun buildConfigureChain() {
             "stop", "стоп" -> bot.terminateChain(it.chat.id)
 
             "class", "класс" -> {
+                log(it.chat.id, "класс chain started", LogLevel.Debug)
                 sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
                 stringState = 0
             }
 
             "link", "ссылка" -> {
+                log(it.chat.id, "ссылка chain started", LogLevel.Debug)
                 sendMessage(it.chat.id, "Введите ссылку на расписание (например $defaultLink)")
                 stringState = 1
             }
 
             else -> {
+                log(it.chat.id, "wrong name", LogLevel.Debug)
                 sendMessage(it.chat.id, "Бот не смог распознать вашу команду")
                 bot.terminateChain(it.chat.id)
             }
@@ -153,8 +159,10 @@ fun buildConfigureChain() {
                             updateJob[it.chat.id] = null
                         }
                         launchScheduleUpdateCoroutine(it.chat.id)
+                        log(it.chat.id, "Success update", LogLevel.Debug)
                         sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
                     } else {
+                        log(it.chat.id, "Wrong format", LogLevel.Info)
                         sendMessage(it.chat.id, "Не правильный формат ввода класса")
                     }
                 }
@@ -171,6 +179,7 @@ fun buildConfigureChain() {
                             updateJob[it.chat.id] = null
                         }
                         launchScheduleUpdateCoroutine(it.chat.id)
+                        log(it.chat.id, "Success link update", LogLevel.Debug)
                         sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
                     }
                 }
