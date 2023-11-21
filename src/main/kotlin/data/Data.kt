@@ -24,7 +24,7 @@ import java.time.DayOfWeek
  * token is generated per bot, should be deleted, when uploading somewhere
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val TOKEN: String = "6722149681:AAHZ1ajmwxmiimFPNKCX8GxwvgilDEf4ujs"
+const val TOKEN: String = ""
 
 /**
  * this is used for debugging purpose
