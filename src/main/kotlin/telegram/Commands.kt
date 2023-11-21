@@ -81,6 +81,7 @@ fun buildOutputChain() {
         }
         log(it.first.chat.id, "/output chain started", LogLevel.Debug)
         storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, false)
+        processPin(it.first.chat.id)
     }
 }
 
@@ -104,16 +105,27 @@ fun buildKillChain() {
 }
 
 /**
+ * it checks if bot was initialized and stops if it wasn't
+ * @param chatId chat ID
+ */
+suspend fun initializationCheckStatus(chatId: Long): Boolean {
+    if (!initializedBot.contains(chatId)) {
+        sendMessage(chatId, "Вам нужно выполнить команду /start чтобы инициализировать бота")
+        bot.terminateChain(chatId)
+        return true
+    }
+    return false
+}
+
+/**
  * it creates /configure chain (command), which should be executed to configure the bot
  */
 fun buildConfigureChain() {
     var stringState = 0
     bot.chain("/configure") {
         log(it.chat.id, "starting /configure chain", LogLevel.Info)
-        if (!initializedBot.contains(it.chat.id)) {
+        if (initializationCheckStatus(it.chat.id)) {
             log(it.chat.id, "/configure chain stopped due to bot, not being initialized", LogLevel.Info)
-            sendMessage(it, "Вам нужно выполнить команду /start чтобы инициализировать бота")
-            bot.terminateChain(it.chat.id)
             return@chain
         }
         sendMessage(
@@ -137,7 +149,7 @@ fun buildConfigureChain() {
 
             "link", "ссылка" -> {
                 log(it.chat.id, "ссылка chain started", LogLevel.Debug)
-                sendMessage(it.chat.id, "Введите ссылку на расписание (например $defaultLink)")
+                sendMessage(it.chat.id, "Введите ссылку на расписание (например $DEFAULT_LINK)")
                 stringState = 1
             }
 

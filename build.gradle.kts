@@ -2,6 +2,7 @@
 
 plugins {
     kotlin("jvm") version "1.8.20"
+    id("io.gitlab.arturbosch.detekt") version "1.23.3"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.8.20"
     id("org.jetbrains.kotlinx.dataframe") version "0.11.1"
     application

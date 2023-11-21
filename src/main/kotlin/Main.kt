@@ -15,16 +15,17 @@ suspend fun main() {
 
 /**
  * initialize default values for a new chat
- * @param chatId id of telegram chat
+ * @param chatId id of telegram chatw
+ * @param className we are working for
  */
 suspend fun initializeChatValues(chatId: Long, className: String) {
     initializedBot.add(chatId)
     chosenClass[chatId] = className
-    chosenLink[chatId] = defaultLink
+    chosenLink[chatId] = DEFAULT_LINK
     updateTime[chatId] = Pair(0, 30)
     log(chatId, "initializing variables", LogLevel.Info)
-    log(chatId, "class name - $className, chosen link - $defaultLink", LogLevel.Debug)
-    storeConfigs(chatId, className, defaultLink, Pair(0, 30), storedSchedule[chatId])
+    log(chatId, "class name - $className, chosen link - $DEFAULT_LINK", LogLevel.Debug)
+    storeConfigs(chatId, className, DEFAULT_LINK, Pair(0, 30), storedSchedule[chatId])
     launchScheduleUpdateCoroutine(chatId)
 }
 
@@ -56,10 +57,8 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
                 delay(1000L * (updateTime[chatId]!!.first * 3600 + updateTime[chatId]!!.second * 60))
             }
         } catch (e: CancellationException) {
-            log(chatId, "Cancellation exception caught, this is expected", LogLevel.Info)
+            log(chatId, "Cancellation exception caught, this is expected \n$e", LogLevel.Debug)
         } catch (e: Exception) {
-            println(e.cause)
-            sendErrorMessage(chatId, e)
             log(chatId, e.stackTraceToString(), LogLevel.Error)
         }
     }

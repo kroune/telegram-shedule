@@ -7,12 +7,11 @@ import data.*
 import matchesWith
 import russianName
 import java.time.LocalDate
-import kotlin.IllegalStateException
 
 /**
  * it creates a telegram bot, using provided token
  */
-val bot: Bot = Bot.createPolling(token)
+val bot: Bot = Bot.createPolling(TOKEN)
 
 /**
  * it displays all data in the chat like this:
@@ -28,11 +27,11 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
     log(chatId, "outputting schedule data", LogLevel.Info)
 
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
-    this.messages.forEachIndexed { index, it ->
+    this.messages.forEachIndexed { index, message ->
         var werePrevious = false
         var messageText = ""
 
-        it.lessonInfo.reversed().forEach { info ->
+        message.lessonInfo.reversed().forEach { info ->
             when (info.lesson) {
                 "" -> if (werePrevious) messageText = "\n$messageText"
 
@@ -43,7 +42,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
             }
         }
 
-        messageText = " ${it.dayOfWeek.russianName()} \n$messageText"
+        messageText = " ${message.dayOfWeek.russianName()} \n$messageText"
 
         if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
             storedSchedule[chatId]!!.messages.all {
@@ -57,16 +56,15 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
                         storedSchedule[chatId]!!.messages[index].messageInfo.messageId,
                         text = messageText
                     )
-                    it.messageInfo = MessageInfo(id.messageId, false)
+                    message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    sendErrorMessage(chatId, e)
                     log(chatId, "error ${storedSchedule[chatId]!!.messages} $e", LogLevel.Error)
                 }
             }
         } else {
             val id = sendMessage(chatId, messageText)
-            it.messageInfo = MessageInfo(id, false)
+            message.messageInfo = MessageInfo(id, false)
         }
     }
     storedSchedule[chatId] = this
@@ -92,6 +90,7 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
 /**
  * sends message about error in telegram chat and to @LichnyiSvetM
  * @param chatId id of telegram chat
+ * @param e caught Exception
  */
 suspend fun sendErrorMessage(chatId: Long, e: Exception) {
     try {
@@ -122,20 +121,21 @@ suspend fun sendMessage(message: Message, text: String): Long {
 suspend fun processPin(chatId: Long) {
     val day = LocalDate.now().dayOfWeek
     storedSchedule[chatId]?.messages!!.forEach { message ->
-        if (message.messageInfo.messageId != -1L) {
-            if (day == message.dayOfWeek) {
-                // if we need to change pin state
-                if (!message.messageInfo.pinState) {
-                    bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
-                    message.messageInfo.pinState = true
-                }
-            } else {
-                // it shouldn't be pinned anymore
-                if (message.messageInfo.pinState) {
-                    bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
-                    message.messageInfo.pinState = false
-                }
+        if (message.messageInfo.messageId == -1L) {
+            log(chatId, IllegalStateException("Message ID is -1L").stackTrace.toString(), LogLevel.Error)
+        }
+        if (day == message.dayOfWeek) {
+            // if we need to change pin state
+            if (!message.messageInfo.pinState) {
+                bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
+                message.messageInfo.pinState = true
             }
-        } else sendErrorMessage(chatId, IllegalStateException("Message ID is -1L"))
+        } else {
+            // it shouldn't be pinned anymore
+            if (message.messageInfo.pinState) {
+                bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
+                message.messageInfo.pinState = false
+            }
+        }
     }
 }

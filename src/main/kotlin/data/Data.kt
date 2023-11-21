@@ -24,12 +24,17 @@ import java.time.DayOfWeek
  * token is generated per bot, should be deleted, when uploading somewhere
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val token: String = "6377325001:AAH4YvKnEOgz-v0ljWd5hCbEiRuyBjjh4aE"
+const val TOKEN: String = "6722149681:AAHZ1ajmwxmiimFPNKCX8GxwvgilDEf4ujs"
+
+/**
+ * this is used for debugging purpose
+ */
+val currentDebugLevel: LogLevel = LogLevel.Info
 
 /**
  * default schedule link
  */
-const val defaultLink: String = "https://docs.google.com/spreadsheets/d/1L9UjNOZx4p4VER11SCyU97M07QnfWsZWwldAAOR0gtM"
+const val DEFAULT_LINK: String = "https://docs.google.com/spreadsheets/d/1L9UjNOZx4p4VER11SCyU97M07QnfWsZWwldAAOR0gtM"
 
 /**
  * it is used to make sure user did everything correctly
@@ -199,7 +204,7 @@ class MessageInfo(
 /**
  * stores config data in data/ folder
  */
-fun storeConfigs(
+suspend fun storeConfigs(
     chatId: Long, className: String, link: String, data: Pair<Int, Int>, schedule: UserSchedule?
 ) {
     val configData = ConfigData(className, link, data, schedule)
@@ -261,7 +266,7 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
                         )
                     }
                     // clears currentDay value
-                    currentDay = Pair(getDay(dayElement!!.toString(), chatId), mutableListOf())
+                    currentDay = Pair(getDay(dayElement!!.toString()), mutableListOf())
                 }
             }
             // if we are the end of our dataFrame or row is empty
@@ -276,7 +281,7 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
                 * it is located like
                 *
                 * subject teacher
-                *        classroom
+                *         classroom
                 */
 
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
@@ -291,13 +296,13 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
             }
         }
     } catch (e: IllegalArgumentException) {
-        val classNameVerification = listOfClasses.contains(chosenClass[chatId]) || chosenLink[chatId] != defaultLink
+        val classNameVerification = listOfClasses.contains(chosenClass[chatId]) || chosenLink[chatId] != DEFAULT_LINK
         if (!classNameVerification) {
             sendMessage(chatId, "Скорее всего вы не правильно ввели название класса")
         } else {
             sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
         }
-        log(chatId, "Incorrect class name", LogLevel.Error)
+        log(chatId, "Incorrect class name \n$e", LogLevel.Error)
         formattedData.clear()
         return UserSchedule(formattedData)
     } catch (e: IndexOutOfBoundsException) {
@@ -307,6 +312,6 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
     )
-    log(chatId, "formatted data - $formattedData", LogLevel.Error)
+    log(chatId, "formatted data - $formattedData", LogLevel.Info)
     return UserSchedule(formattedData)
 }

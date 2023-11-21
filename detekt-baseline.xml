@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LongMethod:Commands.kt$fun buildConfigureChain()</ID>
+    <ID>ReturnCount:Extensions.kt$@Suppress("SpellCheckingInspection", "RedundantSuppression") fun getDay(text: String): DayOfWeek?</ID>
+  </CurrentIssues>
+</SmellBaseline>

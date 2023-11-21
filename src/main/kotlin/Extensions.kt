@@ -1,39 +1,41 @@
-import data.LogLevel
+import data.LessonInfo
 import data.UserSchedule
-import data.log
 import java.time.DayOfWeek
 
+
+/**
+ * this is used for week days translation
+ */
+val weekDaysMap: Map<DayOfWeek, String> = mapOf<DayOfWeek, String>(
+    DayOfWeek.MONDAY to "Понедельник",
+
+    DayOfWeek.TUESDAY to "Вторник",
+
+    DayOfWeek.WEDNESDAY to "Среда",
+
+    DayOfWeek.THURSDAY to "Четверг",
+
+    DayOfWeek.FRIDAY to "Пятница",
+
+    DayOfWeek.SATURDAY to "Суббота",
+
+    DayOfWeek.SUNDAY to "Воскресенье"
+)
 
 /**
  * Adds Russian translation to week days
  */
 fun DayOfWeek?.russianName(): String {
-    when (this) {
-        DayOfWeek.MONDAY -> return "Понедельник"
-
-        DayOfWeek.TUESDAY -> return "Вторник"
-
-        DayOfWeek.WEDNESDAY -> return "Среда"
-
-        DayOfWeek.THURSDAY -> return "Четверг"
-
-        DayOfWeek.FRIDAY -> return "Пятница"
-
-        DayOfWeek.SATURDAY -> return "Суббота"
-
-        DayOfWeek.SUNDAY -> return "Воскресенье"
-
-        null -> return ""
-    }
+    return weekDaysMap[this] ?: ""
 }
 
 /**
  * it is used to interpreter day of week's names and store them in a better format
  * (used for pinning messages (@see processPin))
- * @param text - representation of weekday in Russian
+ * @param text representation of weekday in Russian
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-fun getDay(text: String, chatId: Long): DayOfWeek? {
+fun getDay(text: String): DayOfWeek? {
     text.lowercase().let {
         if (it.contains("поне")) return DayOfWeek.MONDAY
 
@@ -49,7 +51,6 @@ fun getDay(text: String, chatId: Long): DayOfWeek? {
 
         if (it.contains("вос")) return DayOfWeek.SUNDAY
     }
-    log(chatId, "Error recognizing week day name - $text", LogLevel.Error)
     return null
 }
 
@@ -67,13 +68,16 @@ fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
             return false
         }
         message.lessonInfo.forEachIndexed { index1, lessonInfo ->
-            if (lessonInfo.lesson != compareMessage.lessonInfo[index1].lesson ||
-                lessonInfo.classroom != compareMessage.lessonInfo[index1].classroom ||
-                lessonInfo.teacher != compareMessage.lessonInfo[index1].teacher
-            ) {
-                return false
-            }
+            return lessonInfo.matchesWith(compareMessage.lessonInfo[index1])
         }
     }
     return true
+}
+
+/**
+ * this is used to understand is LessonInfo matches a given one
+ * @param compare this one we are comparing to
+ */
+fun LessonInfo.matchesWith(compare: LessonInfo): Boolean {
+    return !(this.lesson != compare.lesson || this.classroom != compare.classroom || this.teacher != compare.teacher)
 }
