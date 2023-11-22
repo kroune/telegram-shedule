@@ -2,7 +2,6 @@ package telegram
 
 import com.elbekd.bot.Bot
 import com.elbekd.bot.model.toChatId
-import com.elbekd.bot.types.Message
 import data.*
 import matchesWith
 import russianName
@@ -85,34 +84,6 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
         println("text is \n$text")
         -1L
     }
-}
-
-/**
- * sends message about error in telegram chat and to @LichnyiSvetM
- * @param chatId id of telegram chat
- * @param e caught Exception
- */
-suspend fun sendErrorMessage(chatId: Long, e: Exception) {
-    try {
-        bot.sendMessage(
-            chatId.toChatId(), "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)"
-        ).messageId
-        bot.sendMessage((1376927355).toLong().toChatId(), "Во время работы бота произошла ошибка")
-        bot.sendMessage((1376927355).toLong().toChatId(), e.stackTraceToString())
-    } catch (e1: Exception) {
-        println("An exception has occurred while sending message")
-        println(e1.stackTraceToString())
-        println("text is \n$\"Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)\"")
-    }
-}
-
-/**
- * sends message in telegram chat
- * @param message any message from telegram chat
- * @param text is a string we want to output
- */
-suspend fun sendMessage(message: Message, text: String): Long {
-    return sendMessage(message.chat.id, text)
 }
 
 /**

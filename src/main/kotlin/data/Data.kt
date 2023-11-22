@@ -15,7 +15,6 @@ import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import removeNull
-import telegram.sendMessage
 import java.io.File
 import java.net.URL
 import java.time.DayOfWeek
@@ -25,11 +24,6 @@ import java.time.DayOfWeek
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
 const val TOKEN: String = ""
-
-/**
- * this is used for debugging purpose
- */
-val currentDebugLevel: LogLevel = LogLevel.Info
 
 /**
  * default schedule link

@@ -6,7 +6,7 @@ import java.time.DayOfWeek
 /**
  * this is used for week days translation
  */
-val weekDaysMap: Map<DayOfWeek, String> = mapOf<DayOfWeek, String>(
+val weekDaysMap: Map<DayOfWeek, String> = mapOf(
     DayOfWeek.MONDAY to "Понедельник",
 
     DayOfWeek.TUESDAY to "Вторник",

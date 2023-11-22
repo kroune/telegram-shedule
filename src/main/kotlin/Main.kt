@@ -15,7 +15,7 @@ suspend fun main() {
 
 /**
  * initialize default values for a new chat
- * @param chatId id of telegram chatw
+ * @param chatId id of telegram chat
  * @param className we are working for
  */
 suspend fun initializeChatValues(chatId: Long, className: String) {
