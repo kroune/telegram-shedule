@@ -5,6 +5,7 @@ import getDay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,6 +16,7 @@ import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import removeNull
+import telegram.sendMessage
 import java.io.File
 import java.net.URL
 import java.time.DayOfWeek
@@ -205,7 +207,9 @@ suspend fun storeConfigs(
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
-    if (!file.exists()) file.createNewFile()
+    if (!file.exists()) withContext(Dispatchers.IO) {
+        file.createNewFile()
+    }
     file.writeText(encodedConfigData)
 }
 

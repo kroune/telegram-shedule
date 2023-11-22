@@ -1,6 +1,7 @@
 package telegram
 
 import com.elbekd.bot.Bot
+import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
 import data.*
 import matchesWith
@@ -90,23 +91,30 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
  * it is used to pin only schedule for the current day
  */
 suspend fun processPin(chatId: Long) {
-    val day = LocalDate.now().dayOfWeek
-    storedSchedule[chatId]?.messages!!.forEach { message ->
-        if (message.messageInfo.messageId == -1L) {
-            log(chatId, IllegalStateException("Message ID is -1L").stackTrace.toString(), LogLevel.Error)
+    try {
+        val day = LocalDate.now().dayOfWeek
+        storedSchedule[chatId]?.messages!!.forEach { message ->
+            if (message.messageInfo.messageId == -1L) {
+                log(chatId, IllegalStateException("Message ID is -1L").stackTrace.toString(), LogLevel.Error)
+            }
+            if (day == message.dayOfWeek) {
+                // if we need to change pin state
+                if (!message.messageInfo.pinState) {
+                    bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
+                    message.messageInfo.pinState = true
+                }
+            } else {
+                // it shouldn't be pinned anymore
+                if (message.messageInfo.pinState) {
+                    bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
+                    message.messageInfo.pinState = false
+                }
+            }
         }
-        if (day == message.dayOfWeek) {
-            // if we need to change pin state
-            if (!message.messageInfo.pinState) {
-                bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
-                message.messageInfo.pinState = true
-            }
-        } else {
-            // it shouldn't be pinned anymore
-            if (message.messageInfo.pinState) {
-                bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
-                message.messageInfo.pinState = false
-            }
+    } catch (e: TelegramApiError) {
+        if (e.code == 400) {
+            sendMessage(chatId, "Похоже, что боту не хватает прав для закпреления сообщений")
+            log(chatId, "Error occurred, while pinning \n${e.stackTraceToString()}", LogLevel.Error)
         }
     }
 }

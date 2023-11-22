@@ -18,6 +18,7 @@ fun initializeChains() {
     buildKillChain()
     buildUpdateChain()
     buildConfigureChain()
+    buildPingChain()
 }
 
 /**
@@ -65,6 +66,15 @@ fun buildUpdateChain() {
         log(it.first.chat.id, "/update chain started", LogLevel.Debug)
         launchScheduleUpdateCoroutine(it.first.chat.id)
         sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
+    }
+}
+
+/**
+ * it is used for checking if bot is down
+ */
+fun buildPingChain() {
+    bot.onCommand("/ping") {
+        sendMessage(it.first.chat.id, "pong")
     }
 }
 
