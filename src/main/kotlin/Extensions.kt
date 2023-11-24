@@ -6,7 +6,7 @@ import java.time.DayOfWeek
 /**
  * this is used for week days translation
  */
-val weekDaysMap: Map<DayOfWeek, String> = mapOf(
+val weekDaysMapName: Map<DayOfWeek, String> = mapOf(
     DayOfWeek.MONDAY to "Понедельник",
 
     DayOfWeek.TUESDAY to "Вторник",
@@ -23,10 +23,29 @@ val weekDaysMap: Map<DayOfWeek, String> = mapOf(
 )
 
 /**
+ * this is used to get week day name, which program can use
+ */
+val stringToWeekDaysMap: Map<String, DayOfWeek> = mapOf(
+    "поне" to DayOfWeek.MONDAY,
+
+    "вт" to DayOfWeek.TUESDAY,
+
+    "ср" to DayOfWeek.WEDNESDAY,
+
+    "чт" to DayOfWeek.THURSDAY,
+
+    "пт" to DayOfWeek.FRIDAY,
+
+    "сб" to DayOfWeek.SATURDAY,
+
+    "вс" to DayOfWeek.SUNDAY,
+)
+
+/**
  * Adds Russian translation to week days
  */
 fun DayOfWeek?.russianName(): String {
-    return weekDaysMap[this] ?: ""
+    return weekDaysMapName[this] ?: ""
 }
 
 /**
@@ -34,22 +53,12 @@ fun DayOfWeek?.russianName(): String {
  * (used for pinning messages (@see processPin))
  * @param text representation of weekday in Russian
  */
-@Suppress("SpellCheckingInspection", "RedundantSuppression")
 fun getDay(text: String): DayOfWeek? {
     text.lowercase().let {
-        if (it.contains("поне")) return DayOfWeek.MONDAY
-
-        if (it.contains("вт")) return DayOfWeek.TUESDAY
-
-        if (it.contains("ср")) return DayOfWeek.WEDNESDAY
-
-        if (it.contains("чет")) return DayOfWeek.THURSDAY
-
-        if (it.contains("пят")) return DayOfWeek.FRIDAY
-
-        if (it.contains("суб")) return DayOfWeek.SATURDAY
-
-        if (it.contains("вос")) return DayOfWeek.SUNDAY
+        stringToWeekDaysMap.onEach { (t, u) ->
+            if (it.contains(t))
+                return u
+        }
     }
     return null
 }
