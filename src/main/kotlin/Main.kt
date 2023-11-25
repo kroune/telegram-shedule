@@ -21,11 +21,11 @@ suspend fun main() {
 suspend fun initializeChatValues(chatId: Long, className: String) {
     initializedBot.add(chatId)
     chosenClass[chatId] = className
-    chosenLink[chatId] = DEFAULT_LINK
     updateTime[chatId] = Pair(0, 30)
+    pinErrorShown[chatId] = false
     log(chatId, "initializing variables", LogLevel.Info)
     log(chatId, "class name - $className, chosen link - $DEFAULT_LINK", LogLevel.Debug)
-    storeConfigs(chatId, className, DEFAULT_LINK, Pair(0, 30), storedSchedule[chatId])
+    storeConfigs(chatId, className, Pair(0, 30), storedSchedule[chatId], pinErrorShown[chatId]!!)
     launchScheduleUpdateCoroutine(chatId)
 }
 
@@ -47,7 +47,7 @@ suspend fun launchScheduleUpdateCoroutine(chatId: Long) {
                         )
                     }
                 }
-                processPin(chatId)
+                processSchedulePinning(chatId)
                 // 1000L = 1 second
                 log(
                     chatId,

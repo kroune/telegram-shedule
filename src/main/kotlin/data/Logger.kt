@@ -9,7 +9,6 @@ import java.util.*
 /**
  * it is used to log debug info
  */
-//TODO: add a safer exceptions catcher
 //TODO: add ban system
 suspend fun log(chatId: Long, text: String, warningLevel: LogLevel) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
@@ -18,8 +17,7 @@ suspend fun log(chatId: Long, text: String, warningLevel: LogLevel) {
             File("logs/").mkdir()
         }
         val file = File("logs/${chatId}.log")
-        if (!file.exists())
-            file.createNewFile()
+        if (!file.exists()) file.createNewFile()
         file.appendText("LOG: $currentDate $text\n")
     } catch (e: Exception) {
         println("an Exception occurred, during logging \n${e.stackTraceToString()}")
@@ -36,7 +34,7 @@ suspend fun log(chatId: Long, text: String, warningLevel: LogLevel) {
             } catch (e1: Exception) {
                 println("An exception has occurred while sending message")
                 println(e1.stackTraceToString())
-                println("text is \n$\"Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)\"")
+                println("text is \n$\"Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)'\n$e1\"")
             }
         }
 

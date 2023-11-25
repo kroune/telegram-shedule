@@ -25,19 +25,25 @@ val weekDaysMapName: Map<DayOfWeek, String> = mapOf(
 /**
  * this is used to get week day name, which program can use
  */
+@Suppress("SpellCheckingInspection")
 val stringToWeekDaysMap: Map<String, DayOfWeek> = mapOf(
     "поне" to DayOfWeek.MONDAY,
+    "пн" to DayOfWeek.MONDAY,
 
     "вт" to DayOfWeek.TUESDAY,
 
     "ср" to DayOfWeek.WEDNESDAY,
 
+    "чет" to DayOfWeek.THURSDAY,
     "чт" to DayOfWeek.THURSDAY,
 
+    "пят" to DayOfWeek.FRIDAY,
     "пт" to DayOfWeek.FRIDAY,
 
+    "суб" to DayOfWeek.SATURDAY,
     "сб" to DayOfWeek.SATURDAY,
 
+    "вос" to DayOfWeek.SUNDAY,
     "вс" to DayOfWeek.SUNDAY,
 )
 
@@ -77,7 +83,8 @@ fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
             return false
         }
         message.lessonInfo.forEachIndexed { index1, lessonInfo ->
-            return lessonInfo.matchesWith(compareMessage.lessonInfo[index1])
+            if (!lessonInfo.matchesWith(compareMessage.lessonInfo[index1]))
+                return false
         }
     }
     return true

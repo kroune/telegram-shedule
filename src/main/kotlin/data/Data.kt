@@ -18,7 +18,7 @@ import org.jetbrains.kotlinx.dataframe.size
 import removeNull
 import telegram.sendMessage
 import java.io.File
-import java.net.URL
+import java.net.URI
 import java.time.DayOfWeek
 
 /**
@@ -120,11 +120,6 @@ val initializedBot: MutableSet<Long> = mutableSetOf()
 val chosenClass: MutableMap<Long, String> = mutableMapOf()
 
 /**
- * google forms link
- */
-val chosenLink: MutableMap<Long, String> = mutableMapOf()
-
-/**
  * it is used for launching data updates
  */
 val myScheduleCoroutine: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -145,15 +140,20 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 val storedSchedule: MutableMap<Long, UserSchedule> = mutableMapOf()
 
 /**
+ * it is used not to spam chat with pinning errors and at the same time notifying about permission settings
+ */
+val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
+
+/**
  * it is used to store data for every chat, so they don't have to rerun bot again
  * @param className - class name
- * @param link - link with schedule
  * @param time - update delay time
  * @param schedule - stored schedule
+ * @param pinErrorShown - used for people, who don't have enough skills to give a pin permission for a bot
  */
 @Serializable
 data class ConfigData(
-    val className: String, val link: String, val time: Pair<Int, Int>, val schedule: UserSchedule?
+    val className: String, val time: Pair<Int, Int>, val schedule: UserSchedule?, val pinErrorShown: Boolean
 )
 
 /**
@@ -198,12 +198,25 @@ class MessageInfo(
 )
 
 /**
+ * deletes data for user
+ */
+suspend fun deleteData(chatId: Long) {
+    val file = File("data/$chatId.json")
+    if (file.exists()) withContext(Dispatchers.IO) {
+        if (!File("data/outdated/").exists())
+            File("data/outdated/").mkdir()
+        file.copyTo(File("data/outdated/$chatId.json"))
+        file.delete()
+    }
+}
+
+/**
  * stores config data in data/ folder
  */
 suspend fun storeConfigs(
-    chatId: Long, className: String, link: String, data: Pair<Int, Int>, schedule: UserSchedule?
+    chatId: Long, className: String, data: Pair<Int, Int>, schedule: UserSchedule?, pingState: Boolean
 ) {
-    val configData = ConfigData(className, link, data, schedule)
+    val configData = ConfigData(className, data, schedule, pingState)
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
@@ -228,8 +241,8 @@ suspend fun loadData() {
         val configData = Json.decodeFromString<ConfigData>(textFile)
         val chatId = it.name.dropLast(5).toLong()
         chosenClass[chatId] = configData.className
-        chosenLink[chatId] = configData.link
         updateTime[chatId] = configData.time
+        pinErrorShown[chatId] = configData.pinErrorShown
         initializedBot.add(chatId)
         configData.schedule.let { schedule ->
             storedSchedule[chatId] = schedule!!
@@ -245,7 +258,8 @@ suspend fun loadData() {
  */
 suspend fun getScheduleData(chatId: Long): UserSchedule {
     // we read our dataFrame here, we read it in csv
-    @Suppress("SpellCheckingInspection") val data = DataFrame.readCSV(URL("${chosenLink[chatId]}/gviz/tq?tqx=out:csv"))
+    @Suppress("SpellCheckingInspection") val data =
+        DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL())
 
     // schedule for a day
     lateinit var currentDay: Pair<DayOfWeek?, MutableList<LessonInfo>>
@@ -273,8 +287,6 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
             ) return@forEachIndexed
 
             element.let {
-                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
-
                 /*
                 * it is located like
                 *
@@ -282,6 +294,7 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
                 *         classroom
                 */
 
+                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
                 if (subject.empty() || subject.isBlank()) {
@@ -294,18 +307,13 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
             }
         }
     } catch (e: IllegalArgumentException) {
-        val classNameVerification = listOfClasses.contains(chosenClass[chatId]) || chosenLink[chatId] != DEFAULT_LINK
-        if (!classNameVerification) {
-            sendMessage(chatId, "Скорее всего вы не правильно ввели название класса")
-        } else {
-            sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        }
+        sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
         log(chatId, "Incorrect class name \n$e", LogLevel.Error)
         formattedData.clear()
         return UserSchedule(formattedData)
     } catch (e: IndexOutOfBoundsException) {
-        log(chatId, e.stackTraceToString(), LogLevel.Error)
-        log(chatId, "incorrect index", LogLevel.Error)
+        sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
+        log(chatId, "Incorrect class name \n$e", LogLevel.Error)
     }
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))

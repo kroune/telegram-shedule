@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<SmellBaseline>
-  <ManuallySuppressedIssues></ManuallySuppressedIssues>
-  <CurrentIssues>
-    <ID>LongMethod:Commands.kt$fun buildConfigureChain()</ID>
-  </CurrentIssues>
-</SmellBaseline>

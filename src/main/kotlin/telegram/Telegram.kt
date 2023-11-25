@@ -4,9 +4,9 @@ import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
 import data.*
+import kotlinx.datetime.DayOfWeek
 import matchesWith
 import russianName
-import java.time.LocalDate
 
 /**
  * it creates a telegram bot, using provided token
@@ -44,9 +44,11 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 
         messageText = " ${message.dayOfWeek.russianName()} \n$messageText"
 
-        if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() && storedSchedule[chatId]!!.messages.all {
+        if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
+            storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
-            }) {
+            }
+        ) {
             if (!storedSchedule[chatId]!!.matchesWith(this)) {
                 try {
                     val id = bot.editMessageText(
@@ -66,7 +68,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
         }
     }
     storedSchedule[chatId] = this
-    storeConfigs(chatId, chosenClass[chatId]!!, chosenLink[chatId]!!, updateTime[chatId]!!, storedSchedule[chatId]!!)
+    storeConfigs(chatId, chosenClass[chatId]!!, updateTime[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!)
 }
 
 /**
@@ -100,6 +102,11 @@ enum class Result {
     ChatNotFound,
 
     /**
+     * this means a message was deleted
+     */
+    MessageNotFound,
+
+    /**
      * this shouldn't happen normally
      */
     Error,
@@ -111,30 +118,83 @@ enum class Result {
 }
 
 /**
+ * this function processes schedule pinging and handle errors
+ * @param chatId chat ID
+ */
+suspend fun processSchedulePinning(chatId: Long) {
+    when (pinRequiredMessage(chatId)) {
+        Result.NotEnoughRight -> {
+            log(chatId, "not enough rights", LogLevel.Info)
+            if (!pinErrorShown[chatId]!!) {
+                pinErrorShown[chatId] = true
+                sendMessage(
+                    chatId,
+                    "не достаточно прав для закрепления сообщения"
+                )
+                storeConfigs(
+                    chatId,
+                    chosenClass[chatId]!!,
+                    updateTime[chatId]!!,
+                    storedSchedule[chatId]!!,
+                    pinErrorShown[chatId]!!
+                )
+            }
+        }
+
+        Result.ChatNotFound -> {
+            log(chatId, "chat with id $chatId was deleted", LogLevel.Info)
+            deleteData(chatId)
+        }
+
+        Result.Error -> {
+            //TODO: add error counter and retry
+        }
+
+        Result.MessageNotFound -> {
+            sendMessage(chatId, "не удалось найти предыдущие сообщения, производим повторный вывод")
+            storedSchedule[chatId]!!.displayInChat(chatId, false)
+        }
+
+        Result.Success -> {
+            if (pinErrorShown[chatId]!!) {
+                pinErrorShown[chatId] = false
+                storeConfigs(
+                    chatId,
+                    chosenClass[chatId]!!,
+                    updateTime[chatId]!!,
+                    storedSchedule[chatId]!!,
+                    pinErrorShown[chatId]!!
+                )
+            }
+        }
+    }
+}
+
+/**
  * it is used to pin only schedule for the current day
  */
-suspend fun processPin(chatId: Long): Result {
+suspend fun pinRequiredMessage(chatId: Long): Result {
+    log(chatId, "updating pinned message", LogLevel.Info)
     try {
-        val day = LocalDate.now().dayOfWeek
+        val day = DayOfWeek.MONDAY
         storedSchedule[chatId]?.messages!!.forEach { message ->
             if (message.messageInfo.messageId == -1L) {
-                log(chatId, IllegalStateException("Message ID is -1L").stackTrace.toString(), LogLevel.Error)
+                return Result.MessageNotFound
             }
             // if we need to change pin state
-            when {
-                day == message.dayOfWeek && !message.messageInfo.pinState -> {
-                    bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
-                    message.messageInfo.pinState = true
-                }
+            if (day == message.dayOfWeek && !message.messageInfo.pinState) {
+                bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
+                message.messageInfo.pinState = true
+            }
 
-                message.messageInfo.pinState -> {
-                    bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
-                    message.messageInfo.pinState = false
-                }
+            if (day != message.dayOfWeek && message.messageInfo.pinState) {
+                bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
+                message.messageInfo.pinState = false
             }
         }
     } catch (e: TelegramApiError) {
         if (e.code == 400) {
+            log(chatId, "exception caught \n$e", LogLevel.Debug)
             telegramApiErrorMap.onEach {
                 if (e.description.contains(it.key))
                     return it.value
@@ -150,4 +210,8 @@ suspend fun processPin(chatId: Long): Result {
  * this is used for processing pin/unpin function
  */
 val telegramApiErrorMap: Map<String, Result> =
-    mapOf("not enough rights" to Result.NotEnoughRight, "chat not found" to Result.ChatNotFound)
+    mapOf(
+        "not enough rights" to Result.NotEnoughRight,
+        "chat not found" to Result.ChatNotFound,
+        "message to pin not found" to Result.MessageNotFound
+    )
