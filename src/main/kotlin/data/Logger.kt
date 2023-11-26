@@ -27,7 +27,7 @@ fun log(chatId: Long, text: String, warningLevel: LogLevel) {
                 sendAsyncMessage(
                     chatId, "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)"
                 )
-                sendAsyncMessage((1376927355).toLong(), "Во время работы бота произошла ошибка $chatId\n$text")
+                sendAsyncMessage(1376927355L, "Во время работы бота произошла ошибка $chatId \n $text")
                 println("(id - $chatId) $currentDate $text")
             } catch (e1: Exception) {
                 println("An exception has occurred while sending message")
@@ -46,7 +46,7 @@ fun log(chatId: Long, text: String, warningLevel: LogLevel) {
 }
 
 /**
- * it is used to print only necessary messages
+ * it is used to print only the necessary messages
  */
 enum class LogLevel {
     /**
