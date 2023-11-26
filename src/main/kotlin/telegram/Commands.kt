@@ -4,6 +4,7 @@ import checkClass
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
 import data.*
+import empty
 import initializeChatValues
 import scheduleUpdateCoroutine
 
@@ -36,7 +37,7 @@ fun buildRunChain() {
         }
 
     }.then {
-        it.text!!.checkClass().let { checkedString ->
+        (it.text ?: return@then).checkClass().let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Полученный класс - \"${checkedString}\"")
                 initializeChatValues(it.chat.id, checkedString)
@@ -87,9 +88,16 @@ fun buildOutputChain() {
             sendMessage(it.first.chat.id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
+        if (updateJob[it.first.chat.id] != null) {
+            updateJob[it.first.chat.id]!!.cancel()
+            updateJob[it.first.chat.id] = null
+        }
         log(it.first.chat.id, "/output chain started", LogLevel.Debug)
-        storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, true)
-        processSchedulePinning(it.first.chat.id)
+        getScheduleData(it.first.chat.id).let { schedule ->
+            if (schedule.empty()) return@let
+            schedule.displayInChat(it.first.chat.id, true)
+            processSchedulePinning(it.first.chat.id)
+        }
     }
 }
 
@@ -106,7 +114,7 @@ fun buildChangeClassChain() {
         log(it.chat.id, "класс chain started", LogLevel.Debug)
         sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
     }.then {
-        it.text!!.checkClass().let { checkedString ->
+        (it.text ?: return@then).checkClass().let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Класс успешно обновлён")
                 chosenClass[it.chat.id] = checkedString
@@ -130,7 +138,7 @@ fun buildChangeClassChain() {
 fun buildKillChain() {
     var confirmation = ""
     bot.chain("/kill") {
-        if (it.from!!.username == "LichnyiSvetM") {
+        if ((it.from ?: return@chain).username == "LichnyiSvetM") {
             confirmation = System.currentTimeMillis().toString()
             sendMessage(it.chat.id, "do /confirm_$confirmation to force stop bot")
         } else bot.terminateChain(it.chat.id)

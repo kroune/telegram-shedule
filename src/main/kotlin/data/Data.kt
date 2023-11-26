@@ -208,7 +208,7 @@ fun deleteData(chatId: Long) {
 fun storeConfigs(
     chatId: Long
 ) {
-    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId], pinErrorShown[chatId]!!)
+    val configData = ConfigData((chosenClass[chatId] ?: return), storedSchedule[chatId], (pinErrorShown[chatId] ?: return))
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
@@ -235,8 +235,8 @@ fun loadData() {
         chosenClass[chatId] = configData.className
         pinErrorShown[chatId] = configData.pinErrorShown
         initializedBot.add(chatId)
-        configData.schedule.let { schedule ->
-            storedSchedule[chatId] = schedule!!
+        configData.schedule?.let { schedule ->
+            storedSchedule[chatId] = schedule
         }
         scheduleUpdateCoroutine(chatId)
         log(chatId, configData.toString(), LogLevel.Debug)
@@ -269,7 +269,7 @@ fun getScheduleData(chatId: Long): UserSchedule {
                         )
                     }
                     // clears currentDay value
-                    currentDay = Pair(getDay(dayElement!!.toString()), mutableListOf())
+                    currentDay = Pair(getDay((dayElement ?: return@let).toString()), mutableListOf())
                 }
             }
             // if we are the end of our dataFrame or row is empty
@@ -285,7 +285,7 @@ fun getScheduleData(chatId: Long): UserSchedule {
                 *         classroom
                 */
 
-                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
+                val classColumnIndex = data.getColumnIndex((chosenClass[chatId] ?: return@let))
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
                 if (subject.empty() || subject.isBlank()) {
