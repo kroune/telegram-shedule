@@ -3,10 +3,9 @@ package telegram
 import checkClass
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
-import com.elbekd.bot.model.toChatId
 import data.*
 import initializeChatValues
-import launchScheduleUpdateCoroutine
+import scheduleUpdateCoroutine
 
 /**
  * it is used to initialize all chains of commands
@@ -63,9 +62,8 @@ fun buildUpdateChain() {
             updateJob[it.first.chat.id] = null
         }
         log(it.first.chat.id, "/update chain started", LogLevel.Debug)
-        launchScheduleUpdateCoroutine(it.first.chat.id)
+        scheduleUpdateCoroutine(it.first.chat.id)
         sendMessage(it.first.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
-        processSchedulePinning(it.first.chat.id)
     }
 }
 
@@ -90,7 +88,7 @@ fun buildOutputChain() {
             return@onCommand
         }
         log(it.first.chat.id, "/output chain started", LogLevel.Debug)
-        storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, false)
+        storedSchedule[it.first.chat.id]!!.displayInChat(it.first.chat.id, true)
         processSchedulePinning(it.first.chat.id)
     }
 }
@@ -116,9 +114,9 @@ fun buildChangeClassChain() {
                     updateJob[it.chat.id]!!.cancel()
                     updateJob[it.chat.id] = null
                 }
-                launchScheduleUpdateCoroutine(it.chat.id)
+                scheduleUpdateCoroutine(it.chat.id)
                 log(it.chat.id, "Success update", LogLevel.Debug)
-                sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
+                sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения при наличие)")
             } else {
                 log(it.chat.id, "Wrong format", LogLevel.Info)
                 sendMessage(it.chat.id, "Не правильный формат ввода класса")
@@ -134,7 +132,7 @@ fun buildKillChain() {
     bot.chain("/kill") {
         if (it.from!!.username == "LichnyiSvetM") {
             confirmation = System.currentTimeMillis().toString()
-            bot.sendMessage(it.chat.id.toChatId(), "do /confirm_$confirmation to force stop bot")
+            sendMessage(it.chat.id, "do /confirm_$confirmation to force stop bot")
         } else bot.terminateChain(it.chat.id)
 
     }.then {
@@ -147,11 +145,11 @@ fun buildKillChain() {
 
 /**
  * it checks if bot was initialized and stops if it wasn't
- * @param chatId chat ID
+ * @param chatId ID of telegram chat
  */
-suspend fun initializationCheckStatus(chatId: Long): Boolean {
+fun initializationCheckStatus(chatId: Long): Boolean {
     if (!initializedBot.contains(chatId)) {
-        sendMessage(chatId, "Вам нужно выполнить команду /start чтобы инициализировать бота")
+        sendAsyncMessage(chatId, "Вам нужно выполнить команду /start чтобы инициализировать бота")
         bot.terminateChain(chatId)
         return true
     }

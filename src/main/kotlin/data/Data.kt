@@ -2,24 +2,23 @@ package data
 
 import empty
 import getDay
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import launchScheduleUpdateCoroutine
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
 import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import removeNull
-import telegram.sendMessage
+import scheduleUpdateCoroutine
+import telegram.sendAsyncMessage
 import java.io.File
 import java.net.URI
 import java.time.DayOfWeek
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * token is generated per bot, should be deleted, when uploading somewhere
@@ -120,14 +119,9 @@ val initializedBot: MutableSet<Long> = mutableSetOf()
 val chosenClass: MutableMap<Long, String> = mutableMapOf()
 
 /**
- * it is used for launching data updates
+ * time it waits, before updating data, note that too small values might lead to an ip ban
  */
-val myScheduleCoroutine: CoroutineScope = CoroutineScope(Dispatchers.IO)
-
-/**
- * time it waits (hours, minutes), before updating data, note that too small values might lead to an ip ban
- */
-val updateTime: MutableMap<Long, Pair<Int, Int>> = mutableMapOf()
+val updateTime: Duration = 30.minutes
 
 /**
  * it is used to check if bot is running
@@ -147,13 +141,12 @@ val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
 /**
  * it is used to store data for every chat, so they don't have to rerun bot again
  * @param className - class name
- * @param time - update delay time
  * @param schedule - stored schedule
  * @param pinErrorShown - used for people, who don't have enough skills to give a pin permission for a bot
  */
 @Serializable
 data class ConfigData(
-    val className: String, val time: Pair<Int, Int>, val schedule: UserSchedule?, val pinErrorShown: Boolean
+    val className: String, val schedule: UserSchedule?, val pinErrorShown: Boolean
 )
 
 /**
@@ -200,11 +193,10 @@ class MessageInfo(
 /**
  * deletes data for user
  */
-suspend fun deleteData(chatId: Long) {
+fun deleteData(chatId: Long) {
     val file = File("data/$chatId.json")
-    if (file.exists()) withContext(Dispatchers.IO) {
-        if (!File("data/outdated/").exists())
-            File("data/outdated/").mkdir()
+    if (file.exists()) {
+        if (!File("data/outdated/").exists()) File("data/outdated/").mkdir()
         file.copyTo(File("data/outdated/$chatId.json"))
         file.delete()
     }
@@ -213,14 +205,14 @@ suspend fun deleteData(chatId: Long) {
 /**
  * stores config data in data/ folder
  */
-suspend fun storeConfigs(
-    chatId: Long, className: String, data: Pair<Int, Int>, schedule: UserSchedule?, pingState: Boolean
+fun storeConfigs(
+    chatId: Long
 ) {
-    val configData = ConfigData(className, data, schedule, pingState)
+    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId], pinErrorShown[chatId]!!)
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
-    if (!file.exists()) withContext(Dispatchers.IO) {
+    if (!file.exists()) {
         file.createNewFile()
     }
     file.writeText(encodedConfigData)
@@ -229,7 +221,7 @@ suspend fun storeConfigs(
 /**
  * loads data on program startup
  */
-suspend fun loadData() {
+fun loadData() {
     if (!File("data/").exists()) {
         File("data/").mkdir()
     }
@@ -241,25 +233,24 @@ suspend fun loadData() {
         val configData = Json.decodeFromString<ConfigData>(textFile)
         val chatId = it.name.dropLast(5).toLong()
         chosenClass[chatId] = configData.className
-        updateTime[chatId] = configData.time
         pinErrorShown[chatId] = configData.pinErrorShown
         initializedBot.add(chatId)
         configData.schedule.let { schedule ->
             storedSchedule[chatId] = schedule!!
         }
-        launchScheduleUpdateCoroutine(chatId)
+        scheduleUpdateCoroutine(chatId)
         log(chatId, configData.toString(), LogLevel.Debug)
     }
 }
 
 /**
  * loads data from provided url and converts it to mutableList
- * @param chatId id of telegram chat
+ * @param chatId ID of telegram chat
  */
-suspend fun getScheduleData(chatId: Long): UserSchedule {
+fun getScheduleData(chatId: Long): UserSchedule {
     // we read our dataFrame here, we read it in csv
-    @Suppress("SpellCheckingInspection") val data =
-        DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL())
+    @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL()
+    val data = DataFrame.readCSV(link)
 
     // schedule for a day
     lateinit var currentDay: Pair<DayOfWeek?, MutableList<LessonInfo>>
@@ -307,13 +298,13 @@ suspend fun getScheduleData(chatId: Long): UserSchedule {
             }
         }
     } catch (e: IllegalArgumentException) {
-        sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
+        sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
         log(chatId, "Incorrect class name \n$e", LogLevel.Error)
-        formattedData.clear()
-        return UserSchedule(formattedData)
+        return UserSchedule(mutableListOf())
     } catch (e: IndexOutOfBoundsException) {
-        sendMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
+        sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
         log(chatId, "Incorrect class name \n$e", LogLevel.Error)
+        return UserSchedule(mutableListOf())
     }
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))

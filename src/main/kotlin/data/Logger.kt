@@ -1,7 +1,6 @@
 package data
 
-import com.elbekd.bot.model.toChatId
-import telegram.bot
+import telegram.sendAsyncMessage
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -10,7 +9,7 @@ import java.util.*
  * it is used to log debug info
  */
 //TODO: add ban system
-suspend fun log(chatId: Long, text: String, warningLevel: LogLevel) {
+fun log(chatId: Long, text: String, warningLevel: LogLevel) {
     val currentDate = SimpleDateFormat("dd/M/yyyy hh:mm:ss").format(Date())
     try {
         if (!File("logs/").exists()) {
@@ -25,11 +24,10 @@ suspend fun log(chatId: Long, text: String, warningLevel: LogLevel) {
     when (warningLevel) {
         LogLevel.Error -> {
             try {
-                bot.sendMessage(
-                    chatId.toChatId(), "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)"
-                ).messageId
-                bot.sendMessage((1376927355).toLong().toChatId(), "Во время работы бота произошла ошибка")
-                bot.sendMessage((1376927355).toLong().toChatId(), text)
+                sendAsyncMessage(
+                    chatId, "Произошла какая-то ошибка, свяжитесь с создателем бота (@LichnyiSvetM)"
+                )
+                sendAsyncMessage((1376927355).toLong(), "Во время работы бота произошла ошибка $chatId\n$text")
                 println("(id - $chatId) $currentDate $text")
             } catch (e1: Exception) {
                 println("An exception has occurred while sending message")

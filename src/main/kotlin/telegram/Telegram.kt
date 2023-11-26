@@ -4,9 +4,12 @@ import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
 import data.*
-import kotlinx.datetime.DayOfWeek
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import matchesWith
 import russianName
+import java.time.LocalDate
 
 /**
  * it creates a telegram bot, using provided token
@@ -20,32 +23,32 @@ val bot: Bot = Bot.createPolling(TOKEN)
  *  PE {в 13} (Ivan Ivanov)
  *  Math {в 1} (Ivan Nikolay)
  *  etc...
- * @param chatId id of telegram chat
+ * @param chatId ID of telegram chat
  * @param shouldResendMessage we use it if a user does /output
  */
 suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolean) {
     log(chatId, "outputting schedule data", LogLevel.Info)
 
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
-    this.messages.forEachIndexed { index, message ->
+    this@displayInChat.messages.forEachIndexed { index, message ->
         var werePrevious = false
         var messageText = ""
 
         message.lessonInfo.reversed().forEach { info ->
             when (info.lesson) {
-                "" -> if (werePrevious) messageText = "\n$messageText"
+                "" -> if (werePrevious) messageText = "\n $messageText"
 
                 else -> {
-                    messageText = "${info.lesson} {в ${info.classroom}} (${info.teacher}) \n$messageText"
+                    messageText = "${info.lesson} {в ${info.classroom}} (${info.teacher}) \n $messageText"
                     werePrevious = true
                 }
             }
         }
 
-        messageText = " ${message.dayOfWeek.russianName()} \n$messageText"
+        messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
 
-        if (shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
-            storedSchedule[chatId]!!.messages.all {
+        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty()
+            && storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
             }
         ) {
@@ -68,22 +71,59 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
         }
     }
     storedSchedule[chatId] = this
-    storeConfigs(chatId, chosenClass[chatId]!!, updateTime[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!)
+    storeConfigs(chatId)
+}
+
+/**
+ * sends async message in telegram chat
+ * @param chatId ID of telegram chat
+ * @param text is a string we want to output
+ */
+fun sendAsyncMessage(chatId: Long, text: String): Long {
+    var id = -1L
+    CoroutineScope(Dispatchers.Default).launch {
+        try {
+            id = bot.sendMessage(chatId.toChatId(), text).messageId
+        } catch (e: Exception) {
+            println("An exception has occurred while sending message to chat $chatId")
+            println(e.stackTraceToString())
+            println("text is \n$text")
+        }
+    }
+    return id
 }
 
 /**
  * sends message in telegram chat
- * @param chatId id of telegram chat
+ * @param chatId ID of telegram chat
  * @param text is a string we want to output
  */
 suspend fun sendMessage(chatId: Long, text: String): Long {
     return try {
         bot.sendMessage(chatId.toChatId(), text).messageId
     } catch (e: Exception) {
-        println("An exception has occurred while sending message")
+        println("An exception has occurred while sending message to chat $chatId")
         println(e.stackTraceToString())
         println("text is \n$text")
         -1L
+    }
+}
+
+/**
+ * this is used to check if a message exists
+ */
+suspend fun Long.exists(chatId: Long): Boolean {
+    return try {
+        bot.copyMessage("-1".toLong().toChatId(), chatId.toChatId(), this)
+        true
+    } catch (e: TelegramApiError) {
+        if (e.description.contains("chat not found")) true
+        else if (e.description.contains("message to copy not found")) {
+            false
+        } else {
+            log(chatId, "unexpected error while checking is message exists \n $e", LogLevel.Error)
+            false
+        }
     }
 }
 
@@ -119,25 +159,19 @@ enum class Result {
 
 /**
  * this function processes schedule pinging and handle errors
- * @param chatId chat ID
+ * @param chatId ID of telegram chat
  */
 suspend fun processSchedulePinning(chatId: Long) {
     when (pinRequiredMessage(chatId)) {
         Result.NotEnoughRight -> {
             log(chatId, "not enough rights", LogLevel.Info)
             if (!pinErrorShown[chatId]!!) {
+                log(chatId, "outputting rights warning", LogLevel.Debug)
                 pinErrorShown[chatId] = true
                 sendMessage(
-                    chatId,
-                    "не достаточно прав для закрепления сообщения"
+                    chatId, "не достаточно прав для закрепления сообщения"
                 )
-                storeConfigs(
-                    chatId,
-                    chosenClass[chatId]!!,
-                    updateTime[chatId]!!,
-                    storedSchedule[chatId]!!,
-                    pinErrorShown[chatId]!!
-                )
+                storeConfigs(chatId)
             }
         }
 
@@ -147,25 +181,19 @@ suspend fun processSchedulePinning(chatId: Long) {
         }
 
         Result.Error -> {
+            log(chatId, "an error has occurred", LogLevel.Error)
             //TODO: add error counter and retry
         }
 
         Result.MessageNotFound -> {
-            sendMessage(chatId, "не удалось найти предыдущие сообщения, производим повторный вывод")
-            storedSchedule[chatId]!!.displayInChat(chatId, false)
         }
 
         Result.Success -> {
+            log(chatId, "successfully updated pinned messages", LogLevel.Info)
             if (pinErrorShown[chatId]!!) {
                 pinErrorShown[chatId] = false
-                storeConfigs(
-                    chatId,
-                    chosenClass[chatId]!!,
-                    updateTime[chatId]!!,
-                    storedSchedule[chatId]!!,
-                    pinErrorShown[chatId]!!
-                )
             }
+            storeConfigs(chatId)
         }
     }
 }
@@ -176,7 +204,7 @@ suspend fun processSchedulePinning(chatId: Long) {
 suspend fun pinRequiredMessage(chatId: Long): Result {
     log(chatId, "updating pinned message", LogLevel.Info)
     try {
-        val day = DayOfWeek.MONDAY
+        val day = LocalDate.now().dayOfWeek
         storedSchedule[chatId]?.messages!!.forEach { message ->
             if (message.messageInfo.messageId == -1L) {
                 return Result.MessageNotFound
@@ -196,8 +224,7 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
         if (e.code == 400) {
             log(chatId, "exception caught \n$e", LogLevel.Debug)
             telegramApiErrorMap.onEach {
-                if (e.description.contains(it.key))
-                    return it.value
+                if (e.description.contains(it.key)) return it.value
             }
             log(chatId, "unexpected telegram api error was thrown \n$e", LogLevel.Error)
             return Result.Error
@@ -209,9 +236,8 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
 /**
  * this is used for processing pin/unpin function
  */
-val telegramApiErrorMap: Map<String, Result> =
-    mapOf(
-        "not enough rights" to Result.NotEnoughRight,
-        "chat not found" to Result.ChatNotFound,
-        "message to pin not found" to Result.MessageNotFound
-    )
+val telegramApiErrorMap: Map<String, Result> = mapOf(
+    "not enough rights" to Result.NotEnoughRight,
+    "chat not found" to Result.ChatNotFound,
+    "message to pin not found" to Result.MessageNotFound
+)
