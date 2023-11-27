@@ -5,13 +5,18 @@ on:
     branches: [ master ]
 
 jobs:
-    detekt:
-      runs-on: ubuntu-latest
+  detekt:
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Setup and build
-          uses: gradle/gradle-build-action@v2
-          env:
-            CI: true
-          with:
-            arguments: build
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup and build
+        uses: gradle/gradle-build-action@v2
+        env:
+          CI: true
+        with:
+          arguments: build
