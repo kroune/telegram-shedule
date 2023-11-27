@@ -37,7 +37,7 @@ fun buildRunChain() {
         }
 
     }.then {
-        (it.text ?: return@then).checkClass().let { checkedString ->
+        it.text!!.checkClass().let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Полученный класс - \"${checkedString}\"")
                 initializeChatValues(it.chat.id, checkedString)
@@ -114,7 +114,7 @@ fun buildChangeClassChain() {
         log(it.chat.id, "класс chain started", LogLevel.Debug)
         sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
     }.then {
-        (it.text ?: return@then).checkClass().let { checkedString ->
+        it.text!!.checkClass().let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Класс успешно обновлён")
                 chosenClass[it.chat.id] = checkedString
@@ -138,7 +138,7 @@ fun buildChangeClassChain() {
 fun buildKillChain() {
     var confirmation = ""
     bot.chain("/kill") {
-        if ((it.from ?: return@chain).username == "LichnyiSvetM") {
+        if (it.from!!.username == "LichnyiSvetM") {
             confirmation = System.currentTimeMillis().toString()
             sendMessage(it.chat.id, "do /confirm_$confirmation to force stop bot")
         } else bot.terminateChain(it.chat.id)

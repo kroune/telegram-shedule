@@ -70,7 +70,7 @@ suspend fun updateSchedule(chatId: Long): Boolean {
  * @param chatId ID of telegram chat
  */
 suspend fun scheduleExists(chatId: Long): Boolean {
-    (storedSchedule[chatId] ?: return false).messages.forEach {
+    storedSchedule[chatId]!!.messages.forEach {
         it.messageInfo.messageId.let { id ->
             if (id == -1L || !id.exists(chatId)) {
                 return false

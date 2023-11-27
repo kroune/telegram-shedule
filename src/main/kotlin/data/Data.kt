@@ -205,10 +205,8 @@ fun deleteData(chatId: Long) {
 /**
  * stores config data in data/ folder
  */
-fun storeConfigs(
-    chatId: Long
-) {
-    val configData = ConfigData((chosenClass[chatId] ?: return), storedSchedule[chatId], (pinErrorShown[chatId] ?: return))
+fun storeConfigs(chatId: Long) {
+    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId], pinErrorShown[chatId]!!)
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
@@ -269,7 +267,7 @@ fun getScheduleData(chatId: Long): UserSchedule {
                         )
                     }
                     // clears currentDay value
-                    currentDay = Pair(getDay((dayElement ?: return@let).toString()), mutableListOf())
+                    currentDay = Pair(getDay(dayElement.toString()), mutableListOf())
                 }
             }
             // if we are the end of our dataFrame or row is empty
@@ -285,7 +283,7 @@ fun getScheduleData(chatId: Long): UserSchedule {
                 *         classroom
                 */
 
-                val classColumnIndex = data.getColumnIndex((chosenClass[chatId] ?: return@let))
+                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
                 if (subject.empty() || subject.isBlank()) {

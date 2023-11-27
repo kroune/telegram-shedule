@@ -47,22 +47,22 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 
         messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
 
-        if (!shouldResendMessage && storedSchedule[chatId] != null && (storedSchedule[chatId] ?: return).messages.isNotEmpty()
-            && (storedSchedule[chatId] ?: return).messages.all {
+        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty()
+            && storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
             }
         ) {
-            if (!(storedSchedule[chatId] ?: return).matchesWith(this)) {
+            if (!storedSchedule[chatId]!!.matchesWith(this)) {
                 try {
                     val id = bot.editMessageText(
                         chatId.toChatId(),
-                        (storedSchedule[chatId] ?: return).messages[index].messageInfo.messageId,
+                        storedSchedule[chatId]!!.messages[index].messageInfo.messageId,
                         text = messageText
                     )
                     message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    log(chatId, "error ${(storedSchedule[chatId] ?: return).messages} $e", LogLevel.Error)
+                    log(chatId, "error ${storedSchedule[chatId]!!.messages} $e", LogLevel.Error)
                 }
             }
         } else {
@@ -165,7 +165,7 @@ suspend fun processSchedulePinning(chatId: Long) {
     when (pinRequiredMessage(chatId)) {
         Result.NotEnoughRight -> {
             log(chatId, "not enough rights", LogLevel.Info)
-            if (!(pinErrorShown[chatId] ?: return)) {
+            if (!pinErrorShown[chatId]!!) {
                 log(chatId, "outputting rights warning", LogLevel.Debug)
                 pinErrorShown[chatId] = true
                 sendMessage(
@@ -190,7 +190,7 @@ suspend fun processSchedulePinning(chatId: Long) {
 
         Result.Success -> {
             log(chatId, "successfully updated pinned messages", LogLevel.Info)
-            if ((pinErrorShown[chatId] ?: return)) {
+            if (pinErrorShown[chatId]!!) {
                 pinErrorShown[chatId] = false
             }
             storeConfigs(chatId)
@@ -205,7 +205,7 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
     log(chatId, "updating pinned message", LogLevel.Info)
     try {
         val day = LocalDate.now().dayOfWeek
-        (storedSchedule[chatId] ?: return Result.Error).messages.forEach { message ->
+        storedSchedule[chatId]!!.messages.forEach { message ->
             if (message.messageInfo.messageId == -1L) {
                 return Result.MessageNotFound
             }
