@@ -19,7 +19,7 @@ fun log(chatId: Long, text: String, warningLevel: LogLevel) {
         if (!file.exists()) file.createNewFile()
         file.appendText("LOG: $currentDate $text\n")
     } catch (e: Exception) {
-        println("an Exception occurred, during logging \n${e.stackTraceToString()}")
+        println("an Exception occurred, during logging \n $e")
     }
     when (warningLevel) {
         LogLevel.Error -> {

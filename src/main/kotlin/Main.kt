@@ -37,7 +37,7 @@ fun initializeChatValues(chatId: Long, className: String) {
 suspend fun updateSchedule(chatId: Long): Boolean {
     return try {
         val timeTaken = measureTimeMillis {
-            getScheduleData(chatId).let {
+            getScheduleData(chatId)?.let {
                 if (it.empty()) return@let
                 if (!scheduleExists(chatId)) {
                     sendMessage(chatId, "Не удалось найти предыдущие сообщения")
@@ -60,7 +60,7 @@ suspend fun updateSchedule(chatId: Long): Boolean {
         log(chatId, "this is expected \n $e", LogLevel.Debug)
         return true
     } catch (e: Exception) {
-        log(chatId, "an exception occurred, while updating schedule \n$e", LogLevel.Error)
+        log(chatId, "an exception occurred, while updating schedule \n $e", LogLevel.Error)
         false
     }
 }

@@ -16,6 +16,7 @@ import scheduleUpdateCoroutine
 import telegram.sendAsyncMessage
 import java.io.File
 import java.net.URI
+import java.net.UnknownHostException
 import java.time.DayOfWeek
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -245,17 +246,17 @@ fun loadData() {
  * loads data from provided url and converts it to mutableList
  * @param chatId ID of telegram chat
  */
-fun getScheduleData(chatId: Long): UserSchedule {
-    // we read our dataFrame here, we read it in csv
-    @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL()
-    val data = DataFrame.readCSV(link)
-
+fun getScheduleData(chatId: Long): UserSchedule? {
     // schedule for a day
     lateinit var currentDay: Pair<DayOfWeek?, MutableList<LessonInfo>>
     val formattedData = mutableListOf<Message>()
 
-    log(chatId, "starting data update", LogLevel.Info)
     try {
+        // we read our dataFrame here, we read it in csv
+        @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL()
+        val data = DataFrame.readCSV(link)
+
+        log(chatId, "starting data update", LogLevel.Info)
         // we iterate over first column, where lesson number is stored
         data.getColumnOrNull(1)?.forEachIndexed { index, element ->
             // week day
@@ -303,6 +304,9 @@ fun getScheduleData(chatId: Long): UserSchedule {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
         log(chatId, "Incorrect class name \n$e", LogLevel.Error)
         return UserSchedule(mutableListOf())
+    } catch (e: UnknownHostException) {
+        log(chatId, "Failed to connect \n $e", LogLevel.Info)
+        return null
     }
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))

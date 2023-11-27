@@ -91,7 +91,7 @@ fun buildOutputChain() {
             updateJob[it.chat.id] = null
         }
         log(it.chat.id, "/output chain started", LogLevel.Debug)
-        getScheduleData(it.chat.id).let { schedule ->
+        getScheduleData(it.chat.id)?.let { schedule ->
             if (schedule.empty()) return@let
             schedule.displayInChat(it.chat.id, true)
             processSchedulePinning(it.chat.id)
