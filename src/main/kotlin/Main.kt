@@ -23,10 +23,11 @@ fun initializeChatValues(chatId: Long, className: String) {
     initializedBot.add(chatId)
     chosenClass[chatId] = className
     pinErrorShown[chatId] = false
+    storedSchedule[chatId] = UserSchedule(mutableListOf())
     log(chatId, "initializing variables", LogLevel.Info)
     log(chatId, "class name - $className, chosen link - $DEFAULT_LINK", LogLevel.Debug)
-    storeConfigs(chatId)
     scheduleUpdateCoroutine(chatId)
+    storeConfigs(chatId)
 }
 
 /**
@@ -57,10 +58,10 @@ suspend fun updateSchedule(chatId: Long): Boolean {
         log(chatId, "schedule update took $timeTaken", LogLevel.Debug)
         true
     } catch (e: CancellationException) {
-        log(chatId, "this is expected \n $e", LogLevel.Debug)
+        log(chatId, "this is expected \n ${e.stackTrace}", LogLevel.Debug)
         return true
     } catch (e: Exception) {
-        log(chatId, "an exception occurred, while updating schedule \n $e", LogLevel.Error)
+        log(chatId, "an exception occurred, while updating schedule \n ${e.stackTrace}", LogLevel.Error)
         false
     }
 }
@@ -111,7 +112,7 @@ fun scheduleUpdateCoroutine(chatId: Long) {
             this.cancel()
             updateJob[chatId] = null
         } catch (e: CancellationException) {
-            log(chatId, "Cancellation exception caught, this is expected \n$e", LogLevel.Debug)
+            log(chatId, "Cancellation exception caught, this is expected \n ${e.stackTrace}", LogLevel.Debug)
         }
     }
 }

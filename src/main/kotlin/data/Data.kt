@@ -147,7 +147,7 @@ val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
  */
 @Serializable
 data class ConfigData(
-    val className: String, val schedule: UserSchedule?, val pinErrorShown: Boolean
+    val className: String, val schedule: UserSchedule, val pinErrorShown: Boolean
 )
 
 /**
@@ -207,7 +207,7 @@ fun deleteData(chatId: Long) {
  * stores config data in data/ folder
  */
 fun storeConfigs(chatId: Long) {
-    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId], pinErrorShown[chatId]!!)
+    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!)
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
     val file = File("data/$chatId.json")
@@ -234,7 +234,7 @@ fun loadData() {
         chosenClass[chatId] = configData.className
         pinErrorShown[chatId] = configData.pinErrorShown
         initializedBot.add(chatId)
-        configData.schedule?.let { schedule ->
+        configData.schedule.let { schedule ->
             storedSchedule[chatId] = schedule
         }
         scheduleUpdateCoroutine(chatId)
@@ -298,14 +298,14 @@ fun getScheduleData(chatId: Long): UserSchedule? {
         }
     } catch (e: IllegalArgumentException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n$e", LogLevel.Error)
+        log(chatId, "Incorrect class name \n ${e.stackTrace}", LogLevel.Error)
         return UserSchedule(mutableListOf())
     } catch (e: IndexOutOfBoundsException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n$e", LogLevel.Error)
+        log(chatId, "Incorrect class name \n ${e.stackTrace}", LogLevel.Error)
         return UserSchedule(mutableListOf())
     } catch (e: UnknownHostException) {
-        log(chatId, "Failed to connect \n $e", LogLevel.Info)
+        log(chatId, "Failed to connect \n ${e.stackTrace}", LogLevel.Info)
         return null
     }
     formattedData.add(

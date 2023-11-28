@@ -62,7 +62,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
                     message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    log(chatId, "error ${storedSchedule[chatId]!!.messages} $e", LogLevel.Error)
+                    log(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTrace}", LogLevel.Error)
                 }
             }
         } else {
@@ -121,7 +121,7 @@ suspend fun Long.exists(chatId: Long): Boolean {
         else if (e.description.contains("message to copy not found")) {
             false
         } else {
-            log(chatId, "unexpected error while checking is message exists \n $e", LogLevel.Error)
+            log(chatId, "unexpected error while checking is message exists \n ${e.stackTrace}", LogLevel.Error)
             false
         }
     }
@@ -222,11 +222,11 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
         }
     } catch (e: TelegramApiError) {
         if (e.code == 400) {
-            log(chatId, "exception caught \n$e", LogLevel.Debug)
+            log(chatId, "exception caught \n ${e.stackTrace}", LogLevel.Debug)
             telegramApiErrorMap.onEach {
                 if (e.description.contains(it.key)) return it.value
             }
-            log(chatId, "unexpected telegram api error was thrown \n$e", LogLevel.Error)
+            log(chatId, "unexpected telegram api error was thrown \n ${e.stackTrace}", LogLevel.Error)
             return Result.Error
         }
     }
