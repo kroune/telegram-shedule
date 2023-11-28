@@ -89,7 +89,7 @@ fun scheduleUpdateCoroutine(chatId: Long) {
         try {
             var failedAttempts = 0
             while (isActive && failedAttempts < 5) {
-                log(chatId, "coroutine delay has passed", LogLevel.Info)
+                log(chatId, "coroutine delay has passed", LogLevel.Debug)
                 if (!updateSchedule(chatId)) {
                     delay(5000)
                     failedAttempts++

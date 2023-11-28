@@ -189,7 +189,7 @@ suspend fun processSchedulePinning(chatId: Long) {
         }
 
         Result.Success -> {
-            log(chatId, "successfully updated pinned messages", LogLevel.Info)
+            log(chatId, "successfully updated pinned messages", LogLevel.Debug)
             if (pinErrorShown[chatId]!!) {
                 pinErrorShown[chatId] = false
             }
@@ -202,7 +202,7 @@ suspend fun processSchedulePinning(chatId: Long) {
  * it is used to pin only schedule for the current day
  */
 suspend fun pinRequiredMessage(chatId: Long): Result {
-    log(chatId, "updating pinned message", LogLevel.Info)
+    log(chatId, "updating pinned message", LogLevel.Debug)
     try {
         val day = LocalDate.now().dayOfWeek
         storedSchedule[chatId]!!.messages.forEach { message ->

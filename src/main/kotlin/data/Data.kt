@@ -311,6 +311,6 @@ fun getScheduleData(chatId: Long): UserSchedule? {
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
     )
-    log(chatId, "formatted data - $formattedData", LogLevel.Info)
+    log(chatId, "formatted data - $formattedData", LogLevel.Debug)
     return UserSchedule(formattedData)
 }
