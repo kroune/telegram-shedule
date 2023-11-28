@@ -225,7 +225,7 @@ fun loadData() {
         File("data/").mkdir()
     }
     File("data/").walk().forEach {
-        if (it.isDirectory) return@forEach
+        if (it.isDirectory || it.path.contains("outdated")) return@forEach
         val textFile = it.bufferedReader().use { text ->
             text.readText()
         }
