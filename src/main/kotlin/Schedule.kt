@@ -5,11 +5,7 @@ import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
 import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
-import telegram.Result
-import telegram.bot
-import telegram.pinRequiredMessage
-import telegram.sendAsyncMessage
-import telegram.sendMessage
+import telegram.*
 import java.net.URI
 import java.net.UnknownHostException
 import java.time.DayOfWeek
@@ -118,9 +114,11 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 
         messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
 
-        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() && storedSchedule[chatId]!!.messages.all {
+        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
+            storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
-            }) {
+            }
+        ) {
             if (!storedSchedule[chatId]!!.matchesWith(this)) {
                 try {
                     val id = bot.editMessageText(
