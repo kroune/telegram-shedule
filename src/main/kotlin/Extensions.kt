@@ -25,7 +25,7 @@ val weekDaysMapName: Map<DayOfWeek, String> = mapOf(
 /**
  * this is used to get week day name, which program can use
  */
-@Suppress("SpellCheckingInspection")
+@Suppress("SpellCheckingInspection", "RedundantSuppression")
 val stringToWeekDaysMap: Map<String, DayOfWeek> = mapOf(
     "поне" to DayOfWeek.MONDAY,
     "пн" to DayOfWeek.MONDAY,

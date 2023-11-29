@@ -1,11 +1,92 @@
-import data.DEFAULT_LINK
-import data.listOfClasses
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
 import org.jetbrains.kotlinx.dataframe.api.getColumn
 import org.jetbrains.kotlinx.dataframe.io.readCSV
 import org.jetbrains.kotlinx.dataframe.size
 import java.net.URI
+
+
+/**
+ * default schedule link
+ */
+const val DEFAULT_LINK: String = "https://docs.google.com/spreadsheets/d/1L9UjNOZx4p4VER11SCyU97M07QnfWsZWwldAAOR0gtM"
+
+/**
+ * it is used to make sure user did everything correctly
+ */
+val listOfClasses: Collection<String> = listOf(
+    "2А",
+    "2Б",
+    "2В",
+    "2Г",
+    "3А",
+    "3Б",
+    "3В",
+    "3Г",
+    "4А",
+    "4Б",
+    "4В",
+    "4Г",
+    "5А",
+    "5Б",
+    "5В",
+    "5Г",
+    "5И",
+    "5П",
+    "6А",
+    "6Б",
+    "6В",
+    "6Г",
+    "6П",
+    "7В",
+    "7О",
+    "7П",
+    "7А",
+    "7Б",
+    "7Г",
+    "8А",
+    "8Б",
+    "8В",
+    "8Г",
+    "8Д",
+    "8М",
+    "8Е",
+    "8У",
+    "8Ф",
+    "8Я",
+    "9А",
+    "9В",
+    "9Г",
+    "9Д",
+    "9М",
+    "9Е",
+    "9П",
+    "9У",
+    "9Ф",
+    "9Х",
+    "9Я",
+    "10Б",
+    "10В",
+    "10Г",
+    "10Д",
+    "10М",
+    "10Е",
+    "10И",
+    "10С",
+    "10У",
+    "10Ф",
+    "10Я",
+    "11А",
+    "11В",
+    "11Г",
+    "11Д",
+    "11М",
+    "11Е",
+    "11И",
+    "11У",
+    "11Ф",
+    "11Я"
+)
 
 /**
  * checks if class name is valid
@@ -38,9 +119,10 @@ fun Any?.empty(): Boolean {
  * @param className name of the class we want to verify
  */
 fun verifyClassNameAvailability(className: String): Boolean {
-    @Suppress("SpellCheckingInspection") val data =
-        DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL())
     try {
+        @Suppress("SpellCheckingInspection") val data =
+            DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL())
+
         data.getColumnOrNull(1)?.forEachIndexed { index, element ->
             data.getColumn(0)[index]
             if (index == data.size().nrow - 1 || element.removeNull()

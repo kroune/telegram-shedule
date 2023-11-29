@@ -4,8 +4,11 @@ import checkClass
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
 import data.*
+import displayInChat
 import empty
+import getScheduleData
 import initializeChatValues
+import processSchedulePinning
 import scheduleUpdateCoroutine
 
 /**
@@ -43,7 +46,6 @@ fun buildRunChain() {
                 initializeChatValues(it.chat.id, checkedString)
             } else sendMessage(it.chat.id, "Класс введен не верно")
         }
-
     }.build()
 }
 
