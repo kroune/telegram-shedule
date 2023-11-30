@@ -1,5 +1,6 @@
 package data
 
+import IS_TEST
 import kotlinx.coroutines.Job
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -9,12 +10,6 @@ import java.io.File
 import java.time.DayOfWeek
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
-
-/**
- * token is generated per bot, should be deleted, when uploading somewhere
- */
-@Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val TOKEN: String = ""
 
 /**
  * it is used to check if bot was initialized
@@ -42,6 +37,11 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 val storedSchedule: MutableMap<Long, UserSchedule> = mutableMapOf()
 
 /**
+ * this is used to understand is user should be notified about schedule changes
+ */
+val notifyAboutScheduleChanges: MutableMap<Long, Boolean> = mutableMapOf()
+
+/**
  * it is used not to spam chat with pinning errors and at the same time notifying about permission settings
  */
 val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
@@ -51,10 +51,14 @@ val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
  * @param className - class name
  * @param schedule - stored schedule
  * @param pinErrorShown - used for people, who don't have enough skills to give a pin permission for a bot
+ * @param notifyAboutScheduleChanges - used for disabling/enabling notification on schedule changes
  */
 @Serializable
 data class ConfigData(
-    val className: String, val schedule: UserSchedule, val pinErrorShown: Boolean
+    val className: String,
+    val schedule: UserSchedule,
+    val pinErrorShown: Boolean,
+    val notifyAboutScheduleChanges: Boolean
 )
 
 /**
@@ -99,13 +103,18 @@ class MessageInfo(
 )
 
 /**
+ * this is used to understand where we need to store config, this is needed to prevent file conflicts
+ */
+val dataDirectory: String = "data/${if (IS_TEST) "test/" else "production/"}"
+
+/**
  * deletes data for user
  */
 fun deleteData(chatId: Long) {
-    val file = File("data/$chatId.json")
+    val file = File("$dataDirectory$chatId.json")
     if (file.exists()) {
-        if (!File("data/outdated/").exists()) File("data/outdated/").mkdir()
-        file.copyTo(File("data/outdated/$chatId.json"))
+        if (!File("${dataDirectory}outdated/").exists()) File("${dataDirectory}outdated/").mkdir()
+        file.copyTo(File("${dataDirectory}outdated/$chatId.json"))
         file.delete()
     }
 }
@@ -114,10 +123,12 @@ fun deleteData(chatId: Long) {
  * stores config data in data/ folder
  */
 fun storeConfigs(chatId: Long) {
-    val configData = ConfigData(chosenClass[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!)
+    val configData = ConfigData(
+        chosenClass[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!, notifyAboutScheduleChanges[chatId]!!
+    )
     val encodedConfigData = Json.encodeToString(configData)
     log(chatId, configData.toString(), LogLevel.Debug)
-    val file = File("data/$chatId.json")
+    val file = File("$dataDirectory$chatId.json")
     if (!file.exists()) {
         file.createNewFile()
     }
@@ -128,10 +139,10 @@ fun storeConfigs(chatId: Long) {
  * loads data on program startup
  */
 fun loadData() {
-    if (!File("data/").exists()) {
-        File("data/").mkdir()
+    if (!File(dataDirectory).exists()) {
+        File(dataDirectory).mkdir()
     }
-    File("data/").walk().forEach {
+    File(dataDirectory).walk().forEach {
         if (it.isDirectory || it.path.contains("outdated")) return@forEach
         val textFile = it.bufferedReader().use { text ->
             text.readText()
@@ -140,10 +151,9 @@ fun loadData() {
         val chatId = it.name.dropLast(5).toLong()
         chosenClass[chatId] = configData.className
         pinErrorShown[chatId] = configData.pinErrorShown
+        notifyAboutScheduleChanges[chatId] = configData.notifyAboutScheduleChanges
         initializedBot.add(chatId)
-        configData.schedule.let { schedule ->
-            storedSchedule[chatId] = schedule
-        }
+        storedSchedule[chatId] = configData.schedule
         scheduleUpdateCoroutine(chatId)
         log(chatId, configData.toString(), LogLevel.Debug)
     }

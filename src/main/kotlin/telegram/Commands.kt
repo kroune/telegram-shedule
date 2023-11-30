@@ -21,6 +21,8 @@ fun initializeChains() {
     buildUpdateChain()
     buildChangeClassChain()
     buildPingChain()
+    buildNotificationChain()
+    buildHelpChain()
 }
 
 /**
@@ -53,21 +55,57 @@ fun buildRunChain() {
  * it updates schedule manually
  */
 fun buildUpdateChain() {
-    bot.chain("/update") {
-        log(it.chat.id, "starting /update chain", LogLevel.Info)
-        if (!initializedBot.contains(it.chat.id)) {
-            log(it.chat.id, "/update chain stopped due to bot, not being initialized", LogLevel.Info)
-            sendMessage(it.chat.id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
-            bot.terminateChain(it.chat.id)
+    bot.onCommand("/update") {
+        val id = it.first.chat.id
+        log(id, "starting /update chain", LogLevel.Info)
+        if (!initializedBot.contains(id)) {
+            log(id, "/update chain stopped due to bot, not being initialized", LogLevel.Info)
+            sendMessage(id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
+            return@onCommand
         }
-        if (updateJob[it.chat.id] != null) {
-            updateJob[it.chat.id]!!.cancel()
-            updateJob[it.chat.id] = null
+        if (updateJob[id] != null) {
+            updateJob[id]!!.cancel()
+            updateJob[id] = null
         }
-        log(it.chat.id, "/update chain started", LogLevel.Debug)
-        scheduleUpdateCoroutine(it.chat.id)
-        sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
-    }.build()
+        log(id, "/update chain started", LogLevel.Debug)
+        scheduleUpdateCoroutine(id)
+        sendMessage(id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
+    }
+}
+
+/**
+ * it used to display useful information
+ */
+fun buildHelpChain() {
+    bot.onCommand("/help") {
+        @Suppress("SpellCheckingInspection")
+        sendMessage(it.first.chat.id, """
+            /help - выводит полезную информацию
+            /notify - позволяет выключить/включить уведомления по поводу изменения расписания
+            /output - позволяет принудительно вывести расписание (обычно не требуется)
+            /update - позволяет обновить расписание не дожидаясь планового обновления
+            /changeclass - позволяет изменить класс, для которого выводится расписание
+            /start - запускает бота
+        """.trimIndent())
+    }
+}
+
+/**
+ * it used for changing notifications settings
+ */
+fun buildNotificationChain() {
+    bot.onCommand("/notify") {
+        val id = it.first.chat.id
+        if (initializationCheckStatus(id)) {
+            return@onCommand
+        }
+        if (notifyAboutScheduleChanges[id]!!) {
+            sendMessage(id, "Вы больше не будете получать уведомления при обновлении расписания")
+        } else {
+            sendMessage(id, "Теперь вы будете получать уведомления при обновлении расписания")
+        }
+        notifyAboutScheduleChanges[id] = !notifyAboutScheduleChanges[id]!!
+    }
 }
 
 /**
@@ -83,22 +121,23 @@ fun buildPingChain() {
  * it updates schedule manually
  */
 fun buildOutputChain() {
-    bot.chain("/output") {
-        log(it.chat.id, "starting /output chain", LogLevel.Info)
-        if (initializationCheckStatus(it.chat.id)) {
-            bot.terminateChain(it.chat.id)
+    bot.onCommand("/output") {
+        val id = it.first.chat.id
+        log(id, "starting /output chain", LogLevel.Info)
+        if (initializationCheckStatus(id)) {
+            return@onCommand
         }
-        if (updateJob[it.chat.id] != null) {
-            updateJob[it.chat.id]!!.cancel()
-            updateJob[it.chat.id] = null
+        if (updateJob[id] != null) {
+            updateJob[id]!!.cancel()
+            updateJob[id] = null
         }
-        log(it.chat.id, "/output chain started", LogLevel.Debug)
-        getScheduleData(it.chat.id)?.let { schedule ->
+        log(id, "/output chain started", LogLevel.Debug)
+        getScheduleData(id)?.let { schedule ->
             if (schedule.empty()) return@let
-            schedule.displayInChat(it.chat.id, true)
-            processSchedulePinning(it.chat.id)
+            schedule.displayInChat(id, true)
+            processSchedulePinning(id)
         }
-    }.build()
+    }
 }
 
 /**
@@ -158,7 +197,7 @@ fun buildKillChain() {
  */
 fun initializationCheckStatus(chatId: Long): Boolean {
     if (!initializedBot.contains(chatId)) {
-        sendAsyncMessage(chatId, "Вам нужно выполнить команду /start чтобы инициализировать бота")
+        sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
         bot.terminateChain(chatId)
         return true
     }

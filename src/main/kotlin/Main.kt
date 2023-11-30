@@ -1,9 +1,31 @@
 import data.*
 import kotlinx.coroutines.*
-import telegram.*
+import telegram.bot
+import telegram.exists
+import telegram.initializeChains
+import telegram.sendMessage
 import kotlin.math.max
 import kotlin.system.measureTimeMillis
 import kotlin.time.DurationUnit
+
+/**
+ * this is used for testing purposes
+ */
+const val IS_TEST: Boolean = true
+
+/**
+ * when uploading somewhere, this token should be deleted;
+ * this one is used for testing stuffs
+ */
+@Suppress("SpellCheckingInspection", "RedundantSuppression")
+const val TEST_TOKEN: String = "6377325001:AAFVxXX_C-91XpOU5GUAY70CjGzfMzQ-zUw"
+
+/**
+ * when uploading somewhere, this token should be deleted;
+ * this one is used for production stuffs
+ */
+@Suppress("SpellCheckingInspection", "RedundantSuppression")
+const val PRODUCTION_TOKEN: String = "6722149681:AAEu7UlCBkQQyiABkUwr3Gs20ud96VR7b_8"
 
 /**
  * here we initialize our commands and that bot
@@ -23,6 +45,7 @@ fun initializeChatValues(chatId: Long, className: String) {
     initializedBot.add(chatId)
     chosenClass[chatId] = className
     pinErrorShown[chatId] = false
+    notifyAboutScheduleChanges[chatId] = true
     storedSchedule[chatId] = UserSchedule(mutableListOf())
     log(chatId, "initializing variables", LogLevel.Info)
     log(chatId, "class name - $className, chosen link - $DEFAULT_LINK", LogLevel.Debug)
@@ -46,7 +69,7 @@ suspend fun updateSchedule(chatId: Long): Boolean {
                 } else {
                     if (!storedSchedule[chatId].matchesWith(it)) {
                         it.displayInChat(chatId, false)
-                        sendMessage(
+                        if (notifyAboutScheduleChanges[chatId]!!) sendMessage(
                             chatId,
                             "Расписание обновилось, если это не так, свяжитесь с создателем бота (@LichnyiSvetM)"
                         )

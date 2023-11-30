@@ -1,9 +1,14 @@
 package telegram
 
+import PRODUCTION_TOKEN
+import TEST_TOKEN
 import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
-import data.*
+import data.LogLevel
+import data.log
+import data.storedSchedule
+import IS_TEST
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -12,7 +17,7 @@ import java.time.LocalDate
 /**
  * it creates a telegram bot, using provided token
  */
-val bot: Bot = Bot.createPolling(TOKEN)
+val bot: Bot = Bot.createPolling(if (IS_TEST) TEST_TOKEN else PRODUCTION_TOKEN)
 
 /**
  * sends async message in telegram chat

@@ -102,20 +102,20 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
         var messageText = ""
 
         message.lessonInfo.asReversed().forEach { info ->
-            when (info.lesson) {
-                "" -> if (werePrevious) messageText = "\n $messageText"
-
-                else -> {
-                    messageText = "${info.lesson} {в ${info.classroom}} (${info.teacher}) \n $messageText"
-                    werePrevious = true
-                }
+            if (info.lesson == "") {
+                if (werePrevious) messageText = "\n $messageText"
+            } else {
+                val classroom = if (info.classroom != "") "{в ${info.classroom}}" else ""
+                val teacher = if (info.teacher != "") "(${info.teacher})" else ""
+                messageText = "${info.lesson} $classroom $teacher \n $messageText"
+                werePrevious = true
             }
         }
 
         messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
 
-        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty() &&
-            storedSchedule[chatId]!!.messages.all {
+        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty()
+            && storedSchedule[chatId]!!.messages.all {
                 it.messageInfo.messageId != -1L
             }
         ) {
