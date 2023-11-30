@@ -18,14 +18,14 @@ const val IS_TEST: Boolean = true
  * this one is used for testing stuffs
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val TEST_TOKEN: String = "6377325001:AAFVxXX_C-91XpOU5GUAY70CjGzfMzQ-zUw"
+const val TEST_TOKEN: String = ""
 
 /**
  * when uploading somewhere, this token should be deleted;
  * this one is used for production stuffs
  */
 @Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val PRODUCTION_TOKEN: String = "6722149681:AAEu7UlCBkQQyiABkUwr3Gs20ud96VR7b_8"
+const val PRODUCTION_TOKEN: String = ""
 
 /**
  * here we initialize our commands and that bot
