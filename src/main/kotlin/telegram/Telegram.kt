@@ -66,7 +66,7 @@ suspend fun Long.exists(chatId: Long): Boolean {
         else if (e.description.contains("message to copy not found")) {
             false
         } else {
-            log(chatId, "unexpected error while checking is message exists \n ${e.stackTraceToString()}", LogLevel.Error)
+            log(chatId, "unexpected error checking if message exists \n ${e.stackTraceToString()}", LogLevel.Error)
             false
         }
     }
