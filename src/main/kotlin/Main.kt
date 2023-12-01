@@ -11,7 +11,7 @@ import kotlin.time.DurationUnit
 /**
  * this is used for testing purposes
  */
-const val IS_TEST: Boolean = true
+const val IS_TEST: Boolean = false
 
 /**
  * when uploading somewhere, this token should be deleted;
@@ -81,10 +81,10 @@ suspend fun updateSchedule(chatId: Long): Boolean {
         log(chatId, "schedule update took $timeTaken", LogLevel.Debug)
         true
     } catch (e: CancellationException) {
-        log(chatId, "this is expected \n ${e.stackTrace}", LogLevel.Debug)
+        log(chatId, "this is expected \n ${e.stackTraceToString()}", LogLevel.Debug)
         return true
     } catch (e: Exception) {
-        log(chatId, "an exception occurred, while updating schedule \n ${e.stackTrace}", LogLevel.Error)
+        log(chatId, "an exception occurred, while updating schedule \n ${e.stackTraceToString()}", LogLevel.Error)
         false
     }
 }
@@ -135,7 +135,7 @@ fun scheduleUpdateCoroutine(chatId: Long) {
             this.cancel()
             updateJob[chatId] = null
         } catch (e: CancellationException) {
-            log(chatId, "Cancellation exception caught, this is expected \n ${e.stackTrace}", LogLevel.Debug)
+            log(chatId, "Cancellation exception caught, this is expected \n ${e.stackTraceToString()}", LogLevel.Debug)
         }
     }
 }

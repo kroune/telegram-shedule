@@ -66,14 +66,14 @@ fun getScheduleData(chatId: Long): UserSchedule? {
         }
     } catch (e: IllegalArgumentException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n ${e.stackTrace}", LogLevel.Error)
+        log(chatId, "Incorrect class name \n ${e.stackTraceToString()}", LogLevel.Error)
         return UserSchedule(mutableListOf())
     } catch (e: IndexOutOfBoundsException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n ${e.stackTrace}", LogLevel.Error)
+        log(chatId, "Incorrect class name \n ${e.stackTraceToString()}", LogLevel.Error)
         return UserSchedule(mutableListOf())
     } catch (e: UnknownHostException) {
-        log(chatId, "Failed to connect \n ${e.stackTrace}", LogLevel.Info)
+        log(chatId, "Failed to connect \n ${e.stackTraceToString()}", LogLevel.Info)
         return null
     }
     formattedData.add(
@@ -129,7 +129,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
                     message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    log(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTrace}", LogLevel.Error)
+                    log(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTraceToString()}", LogLevel.Error)
                 }
             }
         } else {

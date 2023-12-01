@@ -66,7 +66,7 @@ suspend fun Long.exists(chatId: Long): Boolean {
         else if (e.description.contains("message to copy not found")) {
             false
         } else {
-            log(chatId, "unexpected error while checking is message exists \n ${e.stackTrace}", LogLevel.Error)
+            log(chatId, "unexpected error while checking is message exists \n ${e.stackTraceToString()}", LogLevel.Error)
             false
         }
     }
@@ -126,11 +126,11 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
         }
     } catch (e: TelegramApiError) {
         if (e.code == 400) {
-            log(chatId, "exception caught \n ${e.stackTrace}", LogLevel.Debug)
+            log(chatId, "exception caught \n ${e.stackTraceToString()}", LogLevel.Debug)
             telegramApiErrorMap.onEach {
                 if (e.description.contains(it.key)) return it.value
             }
-            log(chatId, "unexpected telegram api error was thrown \n ${e.stackTrace}", LogLevel.Error)
+            log(chatId, "unexpected telegram api error was thrown \n ${e.stackTraceToString()}", LogLevel.Error)
             return Result.Error
         }
     }

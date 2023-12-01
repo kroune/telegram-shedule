@@ -86,6 +86,9 @@ fun buildHelpChain() {
             /update - позволяет обновить расписание не дожидаясь планового обновления
             /changeclass - позволяет изменить класс, для которого выводится расписание
             /start - запускает бота
+            @LichnyiSvetM - создатель бота
+            https://github.com/svetlichnyiMaxim/telegram-shedule - исходный код бота
+            https://t.me/+RbguFVv9dP85OTEy - тг канал для тех, кому хочется узнать больше про бота
         """.trimIndent())
     }
 }
