@@ -14,20 +14,6 @@ import kotlin.time.DurationUnit
 const val IS_TEST: Boolean = false
 
 /**
- * when uploading somewhere, this token should be deleted;
- * this one is used for testing stuffs
- */
-@Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val TEST_TOKEN: String = ""
-
-/**
- * when uploading somewhere, this token should be deleted;
- * this one is used for production stuffs
- */
-@Suppress("SpellCheckingInspection", "RedundantSuppression")
-const val PRODUCTION_TOKEN: String = ""
-
-/**
  * here we initialize our commands and that bot
  */
 fun main() {

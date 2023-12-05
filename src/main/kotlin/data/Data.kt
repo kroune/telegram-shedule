@@ -109,6 +109,7 @@ val dataDirectory: String = "data/${if (IS_TEST) "test/" else "production/"}"
 
 /**
  * deletes data for user
+ * @param chatId ID of telegram chat
  */
 fun deleteData(chatId: Long) {
     val file = File("$dataDirectory$chatId.json")
@@ -121,6 +122,7 @@ fun deleteData(chatId: Long) {
 
 /**
  * stores config data in data/ folder
+ * @param chatId ID of telegram chat
  */
 fun storeConfigs(chatId: Long) {
     val configData = ConfigData(

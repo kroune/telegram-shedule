@@ -7,6 +7,9 @@ import java.util.*
 
 /**
  * it is used to log debug info
+ * @param chatId ID of telegram chat
+ * @param text log text
+ * @param warningLevel it is used for debugging & notifying me about critical errors
  */
 //TODO: add ban system
 fun log(chatId: Long, text: String, warningLevel: LogLevel) {

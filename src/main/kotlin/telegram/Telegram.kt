@@ -56,6 +56,7 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
 
 /**
  * this is used to check if a message exists
+ * @param chatId ID of telegram chat
  */
 suspend fun Long.exists(chatId: Long): Boolean {
     return try {
@@ -104,6 +105,7 @@ enum class Result {
 
 /**
  * it is used to pin only schedule for the current day
+ * @param chatId ID of telegram chat
  */
 suspend fun pinRequiredMessage(chatId: Long): Result {
     log(chatId, "updating pinned message", LogLevel.Debug)
