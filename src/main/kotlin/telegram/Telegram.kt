@@ -7,8 +7,8 @@ import data.LogLevel
 import data.log
 import data.storedSchedule
 import IS_TEST
-import PRODUCTION_TOKEN
-import TEST_TOKEN
+import data.PRODUCTION_TOKEN
+import data.TEST_TOKEN
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

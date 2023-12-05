@@ -1,3 +1,4 @@
+package data
 /*
  * this file shouldn't be shared with anyone
  */
