@@ -53,6 +53,7 @@
     <inspection_tool class="JavaAnnotator" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="JspUnescapedEl" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="KDocMissingDocumentation" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="KotlinAnnotator" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="KotlinLoggerInitializedWithForeignClass" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="LoggingConditionDisagreesWithLogStatement" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="MavenCoroutinesDeprecation" enabled="true" level="ERROR" enabled_by_default="true" />

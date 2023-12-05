@@ -1,7 +1,5 @@
 package telegram
 
-import PRODUCTION_TOKEN
-import TEST_TOKEN
 import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
@@ -9,6 +7,8 @@ import data.LogLevel
 import data.log
 import data.storedSchedule
 import IS_TEST
+import PRODUCTION_TOKEN
+import TEST_TOKEN
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

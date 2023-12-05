@@ -1,7 +1,6 @@
 .gradle
 build/
 backup
-src/main/resources/TOKENS.kt
 data
 logs
 !gradle/wrapper/gradle-wrapper.jar
