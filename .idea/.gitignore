@@ -1,5 +1,6 @@
 # Default ignored files
 /shelf/
+../src/main/resources/TOKENS.kt
 /workspace.xml
 # Editor-based HTTP Client requests
 /httpRequests/
