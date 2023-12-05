@@ -1,7 +1,8 @@
 .gradle
 build/
 backup/
-data/
+.data/
+src/main/kotlin/data/TOKENS.kt
 logs/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

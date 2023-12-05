@@ -105,7 +105,7 @@ class MessageInfo(
 /**
  * this is used to understand where we need to store config, this is needed to prevent file conflicts
  */
-val dataDirectory: String = "data/${if (IS_TEST) "test/" else "production/"}"
+val dataDirectory: String = ".data/${if (IS_TEST) "test/" else "production/"}"
 
 /**
  * deletes data for user
