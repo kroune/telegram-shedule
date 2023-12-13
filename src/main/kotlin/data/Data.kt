@@ -129,7 +129,7 @@ fun storeConfigs(chatId: Long) {
         chosenClass[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!, notifyAboutScheduleChanges[chatId]!!
     )
     val encodedConfigData = Json.encodeToString(configData)
-    log(chatId, configData.toString(), LogLevel.Debug)
+    debug(chatId, configData.toString())
     val file = File("$dataDirectory$chatId.json")
     if (!file.exists()) {
         file.createNewFile()
@@ -157,6 +157,6 @@ fun loadData() {
         initializedBot.add(chatId)
         storedSchedule[chatId] = configData.schedule
         scheduleUpdateCoroutine(chatId)
-        log(chatId, configData.toString(), LogLevel.Debug)
+        debug(chatId, configData.toString())
     }
 }

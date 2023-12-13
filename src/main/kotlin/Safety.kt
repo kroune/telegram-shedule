@@ -1,3 +1,4 @@
+import data.info
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
 import org.jetbrains.kotlinx.dataframe.api.getColumn
@@ -91,10 +92,15 @@ val listOfClasses: Collection<String> = listOf(
 /**
  * checks if class name is valid
  */
-fun String.checkClass(): String? {
-    return if (this.length in 2..3 && this.last().isLetter() && listOfClasses.contains(
+fun String.checkClass(chatId: Long): String? {
+    val properFormatCheck = this.length in 2..3 && this.last().isLetter()
+    if (!properFormatCheck)
+        info(chatId, "format check failed $this")
+    val isItInListOfClasses = listOfClasses.contains(this.dropLast(1) + this.last().uppercase())
+    info(chatId, "format check failed status - ${if (isItInListOfClasses) "FAILED" else "success"} $this")
+    return if (properFormatCheck && isItInListOfClasses && verifyClassNameAvailability(
             this.dropLast(1) + this.last().uppercase()
-        ) && verifyClassNameAvailability(this.dropLast(1) + this.last().uppercase())
+        )
     ) this.dropLast(1) + this.last().uppercase()
     else null
 }

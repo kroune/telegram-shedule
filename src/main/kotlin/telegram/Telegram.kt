@@ -3,12 +3,8 @@ package telegram
 import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
-import data.LogLevel
-import data.log
-import data.storedSchedule
 import IS_TEST
-import data.PRODUCTION_TOKEN
-import data.TEST_TOKEN
+import data.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,7 +63,7 @@ suspend fun Long.exists(chatId: Long): Boolean {
         else if (e.description.contains("message to copy not found")) {
             false
         } else {
-            log(chatId, "unexpected error checking if message exists \n ${e.stackTraceToString()}", LogLevel.Error)
+            error(chatId, "unexpected error checking if message exists \n ${e.stackTraceToString()}")
             false
         }
     }
@@ -108,7 +104,7 @@ enum class Result {
  * @param chatId ID of telegram chat
  */
 suspend fun pinRequiredMessage(chatId: Long): Result {
-    log(chatId, "updating pinned message", LogLevel.Debug)
+    debug(chatId, "updating pinned message")
     try {
         val day = LocalDate.now().dayOfWeek
         storedSchedule[chatId]!!.messages.forEach { message ->
@@ -128,11 +124,11 @@ suspend fun pinRequiredMessage(chatId: Long): Result {
         }
     } catch (e: TelegramApiError) {
         if (e.code == 400) {
-            log(chatId, "exception caught \n ${e.stackTraceToString()}", LogLevel.Debug)
+            debug(chatId, "exception caught \n ${e.stackTraceToString()}")
             telegramApiErrorMap.onEach {
                 if (e.description.contains(it.key)) return it.value
             }
-            log(chatId, "unexpected telegram api error was thrown \n ${e.stackTraceToString()}", LogLevel.Error)
+            error(chatId, "unexpected telegram api error was thrown \n ${e.stackTraceToString()}")
             return Result.Error
         }
     }

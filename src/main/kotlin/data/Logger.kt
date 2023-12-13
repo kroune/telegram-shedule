@@ -49,6 +49,27 @@ fun log(chatId: Long, text: String, warningLevel: LogLevel) {
 }
 
 /**
+ * it is used for quicker logging
+ */
+fun info(chatId: Long, text: String) {
+    log(chatId, text, LogLevel.Info)
+}
+
+/**
+ * it is used for quicker logging
+ */
+fun debug(chatId: Long, text: String) {
+    log(chatId, text, LogLevel.Debug)
+}
+
+/**
+ * it is used for quicker logging
+ */
+fun error(chatId: Long, text: String) {
+    log(chatId, text, LogLevel.Error)
+}
+
+/**
  * it is used to print only the necessary messages
  */
 enum class LogLevel {

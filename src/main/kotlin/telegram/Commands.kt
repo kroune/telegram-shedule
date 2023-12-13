@@ -30,19 +30,19 @@ fun initializeChains() {
  */
 fun buildRunChain() {
     bot.chain("/start") {
-        log(it.chat.id, "started /start chain", LogLevel.Info)
+        info(it.chat.id, "started /start chain")
         if (initializedBot.contains(it.chat.id)) {
-            log(it.chat.id, "/start chain stopped due to bot, not being initialized", LogLevel.Info)
+            info(it.chat.id, "/start chain stopped due to bot, not being initialized")
             sendMessage(it.chat.id, "Вы уже запускали бота, используйте команды настроек")
             bot.terminateChain(it.chat.id)
         } else {
-            log(it.chat.id, "/start chain started", LogLevel.Debug)
+            debug(it.chat.id, "/start chain started")
             sendMessage(it.chat.id, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
             sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
         }
 
     }.then {
-        it.text!!.checkClass().let { checkedString ->
+        it.text!!.checkClass(it.chat.id).let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Полученный класс - \"${checkedString}\"")
                 initializeChatValues(it.chat.id, checkedString)
@@ -57,9 +57,9 @@ fun buildRunChain() {
 fun buildUpdateChain() {
     bot.onCommand("/update") {
         val id = it.first.chat.id
-        log(id, "starting /update chain", LogLevel.Info)
+        info(id, "starting /update chain")
         if (!initializedBot.contains(id)) {
-            log(id, "/update chain stopped due to bot, not being initialized", LogLevel.Info)
+            info(id, "/update chain stopped due to bot, not being initialized")
             sendMessage(id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
@@ -67,7 +67,7 @@ fun buildUpdateChain() {
             updateJob[id]!!.cancel()
             updateJob[id] = null
         }
-        log(id, "/update chain started", LogLevel.Debug)
+        debug(id, "/update chain started")
         scheduleUpdateCoroutine(id)
         sendMessage(id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
     }
@@ -78,8 +78,8 @@ fun buildUpdateChain() {
  */
 fun buildHelpChain() {
     bot.onCommand("/help") {
-        @Suppress("SpellCheckingInspection")
-        sendMessage(it.first.chat.id, """
+        @Suppress("SpellCheckingInspection") sendMessage(
+            it.first.chat.id, """
             /help - выводит полезную информацию
             /notify - позволяет выключить/включить уведомления по поводу изменения расписания
             /output - позволяет принудительно вывести расписание (обычно не требуется)
@@ -89,7 +89,8 @@ fun buildHelpChain() {
             @LichnyiSvetM - создатель бота
             https://github.com/svetlichnyiMaxim/telegram-shedule - исходный код бота
             https://t.me/+RbguFVv9dP85OTEy - тг канал для тех, кому хочется узнать больше про бота
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }
 
@@ -126,7 +127,7 @@ fun buildPingChain() {
 fun buildOutputChain() {
     bot.onCommand("/output") {
         val id = it.first.chat.id
-        log(id, "starting /output chain", LogLevel.Info)
+        info(id, "starting /output chain")
         if (initializationCheckStatus(id)) {
             return@onCommand
         }
@@ -134,7 +135,7 @@ fun buildOutputChain() {
             updateJob[id]!!.cancel()
             updateJob[id] = null
         }
-        log(id, "/output chain started", LogLevel.Debug)
+        debug(id, "/output chain started")
         getScheduleData(id)?.let { schedule ->
             if (schedule.empty()) return@let
             schedule.displayInChat(id, true)
@@ -148,15 +149,14 @@ fun buildOutputChain() {
  */
 fun buildChangeClassChain() {
     // telegram only accepts lower-cased names
-    @Suppress("SpellCheckingInspection")
-    bot.chain("/changeclass") {
+    @Suppress("SpellCheckingInspection") bot.chain("/changeclass") {
         if (initializationCheckStatus(it.chat.id)) {
             bot.terminateChain(it.chat.id)
         }
-        log(it.chat.id, "класс chain started", LogLevel.Debug)
+        debug(it.chat.id, "класс chain started")
         sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
     }.then {
-        it.text!!.checkClass().let { checkedString ->
+        it.text!!.checkClass(it.chat.id).let { checkedString ->
             if (checkedString != null) {
                 sendMessage(it.chat.id, "Класс успешно обновлён")
                 chosenClass[it.chat.id] = checkedString
@@ -165,10 +165,10 @@ fun buildChangeClassChain() {
                     updateJob[it.chat.id] = null
                 }
                 scheduleUpdateCoroutine(it.chat.id)
-                log(it.chat.id, "Success update", LogLevel.Debug)
+                debug(it.chat.id, "Success update")
                 sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения при наличие)")
             } else {
-                log(it.chat.id, "Wrong format", LogLevel.Info)
+                info(it.chat.id, "Wrong format")
                 sendMessage(it.chat.id, "Не правильный формат ввода класса")
             }
         }

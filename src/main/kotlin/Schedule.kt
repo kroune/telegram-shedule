@@ -24,7 +24,7 @@ fun getScheduleData(chatId: Long): UserSchedule? {
         @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL()
         val data = DataFrame.readCSV(link)
 
-        log(chatId, "starting data update", LogLevel.Info)
+        info(chatId, "starting data update")
         // we iterate over first column, where lesson number is stored
         data.getColumnOrNull(1)?.forEachIndexed { index, element ->
             // week day
@@ -66,20 +66,20 @@ fun getScheduleData(chatId: Long): UserSchedule? {
         }
     } catch (e: IllegalArgumentException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n ${e.stackTraceToString()}", LogLevel.Error)
+        error(chatId, "Incorrect class name \n ${e.stackTraceToString()}")
         return UserSchedule(mutableListOf())
     } catch (e: IndexOutOfBoundsException) {
         sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        log(chatId, "Incorrect class name \n ${e.stackTraceToString()}", LogLevel.Error)
+        error(chatId, "Incorrect class name \n ${e.stackTraceToString()}")
         return UserSchedule(mutableListOf())
     } catch (e: UnknownHostException) {
-        log(chatId, "Failed to connect \n ${e.stackTraceToString()}", LogLevel.Info)
+        info(chatId, "Failed to connect \n ${e.stackTraceToString()}")
         return null
     }
     formattedData.add(
         Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
     )
-    log(chatId, "formatted data - $formattedData", LogLevel.Debug)
+    debug(chatId, "formatted data - $formattedData")
     return UserSchedule(formattedData)
 }
 
@@ -94,7 +94,7 @@ fun getScheduleData(chatId: Long): UserSchedule? {
  * @param shouldResendMessage we use it if a user does /output
  */
 suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolean) {
-    log(chatId, "outputting schedule data", LogLevel.Info)
+    info(chatId, "outputting schedule data")
 
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
     this@displayInChat.messages.forEachIndexed { index, message ->
@@ -129,7 +129,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
                     message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    log(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTraceToString()}", LogLevel.Error)
+                    error(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTraceToString()}")
                 }
             }
         } else {
@@ -148,9 +148,9 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 suspend fun processSchedulePinning(chatId: Long) {
     when (pinRequiredMessage(chatId)) {
         Result.NotEnoughRight -> {
-            log(chatId, "not enough rights", LogLevel.Info)
+            info(chatId, "not enough rights")
             if (!pinErrorShown[chatId]!!) {
-                log(chatId, "outputting rights warning", LogLevel.Debug)
+                debug(chatId, "outputting rights warning")
                 pinErrorShown[chatId] = true
                 sendMessage(
                     chatId, "не достаточно прав для закрепления сообщения"
@@ -160,12 +160,12 @@ suspend fun processSchedulePinning(chatId: Long) {
         }
 
         Result.ChatNotFound -> {
-            log(chatId, "chat with id $chatId was deleted", LogLevel.Info)
+            info(chatId, "chat with id $chatId was deleted")
             deleteData(chatId)
         }
 
         Result.Error -> {
-            log(chatId, "an error has occurred", LogLevel.Error)
+            error(chatId, "an error has occurred")
             //TODO: add error counter and retry
         }
 
@@ -173,7 +173,7 @@ suspend fun processSchedulePinning(chatId: Long) {
         }
 
         Result.Success -> {
-            log(chatId, "successfully updated pinned messages", LogLevel.Debug)
+            debug(chatId, "successfully updated pinned messages")
             if (pinErrorShown[chatId]!!) {
                 pinErrorShown[chatId] = false
             }
