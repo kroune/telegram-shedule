@@ -1,9 +1,9 @@
 package telegram
 
+import IS_TEST
 import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
-import IS_TEST
 import data.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -103,36 +103,37 @@ enum class Result {
  * it is used to pin only schedule for the current day
  * @param chatId ID of telegram chat
  */
-suspend fun pinRequiredMessage(chatId: Long): Result {
+suspend fun pinRequiredMessage(chatId: Long): Pair<Result, Boolean> {
+    var attemptedToChangePinState = false
     debug(chatId, "updating pinned message")
     try {
         val day = LocalDate.now().dayOfWeek
         storedSchedule[chatId]!!.messages.forEach { message ->
             if (message.messageInfo.messageId == -1L) {
-                return Result.MessageNotFound
+                return Pair(Result.MessageNotFound, false)
             }
             // if we need to change pin state
             if (day == message.dayOfWeek && !message.messageInfo.pinState) {
+                attemptedToChangePinState = true
                 bot.pinChatMessage(chatId.toChatId(), message.messageInfo.messageId, true)
                 message.messageInfo.pinState = true
             }
 
             if (day != message.dayOfWeek && message.messageInfo.pinState) {
+                attemptedToChangePinState = true
                 bot.unpinChatMessage(chatId.toChatId(), message.messageInfo.messageId)
                 message.messageInfo.pinState = false
             }
         }
     } catch (e: TelegramApiError) {
-        if (e.code == 400) {
-            debug(chatId, "exception caught \n ${e.stackTraceToString()}")
-            telegramApiErrorMap.onEach {
-                if (e.description.contains(it.key)) return it.value
-            }
-            error(chatId, "unexpected telegram api error was thrown \n ${e.stackTraceToString()}")
-            return Result.Error
+        debug(chatId, "exception caught \n ${e.stackTraceToString()}")
+        telegramApiErrorMap.onEach {
+            if (e.description.contains(it.key)) return Pair(it.value, false)
         }
+        error(chatId, "unexpected telegram api error was thrown \n ${e.stackTraceToString()}")
+        return Pair(Result.Error, false)
     }
-    return Result.Success
+    return Pair(Result.Success, attemptedToChangePinState)
 }
 
 /**

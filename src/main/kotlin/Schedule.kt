@@ -146,38 +146,40 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
  * @param chatId ID of telegram chat
  */
 suspend fun processSchedulePinning(chatId: Long) {
-    when (pinRequiredMessage(chatId)) {
-        Result.NotEnoughRight -> {
-            info(chatId, "not enough rights")
-            if (!pinErrorShown[chatId]!!) {
-                debug(chatId, "outputting rights warning")
-                pinErrorShown[chatId] = true
-                sendMessage(
-                    chatId, "не достаточно прав для закрепления сообщения"
-                )
+    pinRequiredMessage(chatId).let {
+        when (it.first) {
+            Result.NotEnoughRight -> {
+                info(chatId, "not enough rights")
+                if (!pinErrorShown[chatId]!!) {
+                    debug(chatId, "outputting rights warning")
+                    pinErrorShown[chatId] = true
+                    sendMessage(
+                        chatId, "не достаточно прав для закрепления сообщения"
+                    )
+                    storeConfigs(chatId)
+                }
+            }
+
+            Result.ChatNotFound -> {
+                info(chatId, "chat with id $chatId was deleted")
+                deleteData(chatId)
+            }
+
+            Result.Error -> {
+                error(chatId, "an error has occurred")
+                //TODO: add error counter and retry
+            }
+
+            Result.MessageNotFound -> {
+            }
+
+            Result.Success -> {
+                debug(chatId, "successfully updated pinned messages")
+                if (pinErrorShown[chatId]!! && it.second) {
+                    pinErrorShown[chatId] = false
+                }
                 storeConfigs(chatId)
             }
-        }
-
-        Result.ChatNotFound -> {
-            info(chatId, "chat with id $chatId was deleted")
-            deleteData(chatId)
-        }
-
-        Result.Error -> {
-            error(chatId, "an error has occurred")
-            //TODO: add error counter and retry
-        }
-
-        Result.MessageNotFound -> {
-        }
-
-        Result.Success -> {
-            debug(chatId, "successfully updated pinned messages")
-            if (pinErrorShown[chatId]!!) {
-                pinErrorShown[chatId] = false
-            }
-            storeConfigs(chatId)
         }
     }
 }
