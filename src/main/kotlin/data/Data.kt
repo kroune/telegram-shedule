@@ -36,6 +36,7 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
  */
 val storedSchedule: MutableMap<Long, UserSchedule> = mutableMapOf()
 
+val displayMode: MutableMap<Long, OutputMode> = mutableMapOf()
 /**
  * this is used to understand is user should be notified about schedule changes
  */
@@ -125,16 +126,26 @@ fun deleteData(chatId: Long) {
  * @param chatId ID of telegram chat
  */
 fun storeConfigs(chatId: Long) {
-    val configData = ConfigData(
-        chosenClass[chatId]!!, storedSchedule[chatId]!!, pinErrorShown[chatId]!!, notifyAboutScheduleChanges[chatId]!!
-    )
-    val encodedConfigData = Json.encodeToString(configData)
-    debug(chatId, configData.toString())
-    val file = File("$dataDirectory$chatId.json")
-    if (!file.exists()) {
-        file.createNewFile()
+    try {
+        require(
+            chosenClass[chatId] != null && storedSchedule[chatId] != null && notifyAboutScheduleChanges[chatId] != null
+        )
+        val configData = ConfigData(
+            chosenClass[chatId]!!,
+            storedSchedule[chatId]!!,
+            pinErrorShown[chatId]!!,
+            notifyAboutScheduleChanges[chatId]!!
+        )
+        val encodedConfigData = Json.encodeToString(configData)
+        debug(chatId, configData.toString())
+        val file = File("$dataDirectory$chatId.json")
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        file.writeText(encodedConfigData)
+    } catch (e: IllegalArgumentException) {
+        error(chatId, "an exception occurred when storing configs \n $e")
     }
-    file.writeText(encodedConfigData)
 }
 
 /**
@@ -159,4 +170,8 @@ fun loadData() {
         scheduleUpdateCoroutine(chatId)
         debug(chatId, configData.toString())
     }
+}
+
+enum class OutputMode {
+    RePin, UpdatePinned
 }
