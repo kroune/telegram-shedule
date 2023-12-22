@@ -204,8 +204,7 @@ fun loadData() {
             debug(chatId, configData.toString())
         } catch (e: MissingFieldException) {
             println("an exception occurred when loading data")
-            invalidateData(it.name.dropLast(5).toLong())
-
+            if (IS_TEST) invalidateData(it.name.dropLast(5).toLong())
         }
     }
 }
