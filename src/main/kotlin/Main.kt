@@ -28,7 +28,7 @@ fun main() {
  * @param className we are working for
  */
 fun initializeChatValues(chatId: Long, className: String) {
-    initializedBot.add(chatId)
+    initializedBot[chatId] = true
     chosenClass[chatId] = className
     pinErrorShown[chatId] = false
     notifyAboutScheduleChanges[chatId] = true

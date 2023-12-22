@@ -52,7 +52,9 @@ fun getScheduleData(chatId: Long): UserSchedule? {
                 *         classroom
                 */
 
-                val classColumnIndex = data.getColumnIndex(chosenClass[chatId]!!)
+                val upperCase = data.getColumnIndex(chosenClass[chatId]!!.uppercase()) != -1
+                val classColumnIndex =
+                    data.getColumnIndex(if (upperCase) chosenClass[chatId]!! else chosenClass[chatId]!!.lowercase())
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
                 if (subject.empty() || subject.isBlank()) {

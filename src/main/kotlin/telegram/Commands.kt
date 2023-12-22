@@ -31,10 +31,11 @@ fun initializeChains() {
 fun buildRunChain() {
     bot.chain("/start") {
         info(it.chat.id, "started /start chain")
-        if (initializedBot.contains(it.chat.id)) {
+        if (initializedBot[it.chat.id] != null && initializedBot[it.chat.id]!!) {
             info(it.chat.id, "/start chain stopped due to bot, not being initialized")
             sendMessage(it.chat.id, "Вы уже запускали бота, используйте команды настроек")
             bot.terminateChain(it.chat.id)
+            return@chain
         } else {
             debug(it.chat.id, "/start chain started")
             sendMessage(it.chat.id, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
@@ -58,7 +59,7 @@ fun buildUpdateChain() {
     bot.onCommand("/update") {
         val id = it.first.chat.id
         info(id, "starting /update chain")
-        if (!initializedBot.contains(id)) {
+        if (initializedBot[id] == null || !initializedBot[id]!!) {
             info(id, "/update chain stopped due to bot, not being initialized")
             sendMessage(id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
@@ -152,6 +153,7 @@ fun buildChangeClassChain() {
     @Suppress("SpellCheckingInspection") bot.chain("/changeclass") {
         if (initializationCheckStatus(it.chat.id)) {
             bot.terminateChain(it.chat.id)
+            return@chain
         }
         debug(it.chat.id, "класс chain started")
         sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
@@ -184,7 +186,9 @@ fun buildKillChain() {
         if (it.from!!.username == "LichnyiSvetM") {
             confirmation = System.currentTimeMillis().toString()
             sendMessage(it.chat.id, "do /confirm_$confirmation to force stop bot")
-        } else bot.terminateChain(it.chat.id)
+        } else {
+            bot.terminateChain(it.chat.id)
+        }
 
     }.then {
         if (it.text == "/confirm_$confirmation") {
@@ -199,7 +203,7 @@ fun buildKillChain() {
  * @param chatId ID of telegram chat
  */
 fun initializationCheckStatus(chatId: Long): Boolean {
-    if (!initializedBot.contains(chatId)) {
+    if (initializedBot[chatId] == null || !initializedBot[chatId]!!) {
         sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
         bot.terminateChain(chatId)
         return true

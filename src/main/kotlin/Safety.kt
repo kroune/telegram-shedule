@@ -94,10 +94,9 @@ val listOfClasses: Collection<String> = listOf(
  */
 fun String.checkClass(chatId: Long): String? {
     val properFormatCheck = this.length in 2..3 && this.last().isLetter()
-    if (!properFormatCheck)
-        info(chatId, "format check failed $this")
+    if (!properFormatCheck) info(chatId, "format check failed $this")
     val isItInListOfClasses = listOfClasses.contains(this.dropLast(1) + this.last().uppercase())
-    info(chatId, "format check failed status - ${if (isItInListOfClasses) "FAILED" else "success"} $this")
+    info(chatId, "format check failed status - ${if (isItInListOfClasses) "success" else "FAILED"} $this")
     return if (properFormatCheck && isItInListOfClasses && verifyClassNameAvailability(
             this.dropLast(1) + this.last().uppercase()
         )
@@ -135,7 +134,8 @@ fun verifyClassNameAvailability(className: String): Boolean {
                     .any { !it.isDigit() } || element.empty()
             ) return@forEachIndexed
 
-            val classColumnIndex = data.getColumnIndex(className)
+            val upperCase = data.getColumnIndex(className.uppercase()) != -1
+            val classColumnIndex = data.getColumnIndex(if (upperCase) className else className.lowercase())
             val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
             if (subject.isNotEmpty() && subject.isNotBlank()) {
@@ -144,10 +144,10 @@ fun verifyClassNameAvailability(className: String): Boolean {
             }
         }
     } catch (e: IllegalArgumentException) {
-        println("link verification failed due to \n$e")
+        println("link verification failed due to \n${e.stackTraceToString()}")
         return false
     } catch (e: IndexOutOfBoundsException) {
-        println("link verification failed due to \n$e")
+        println("link verification failed due to \n${e.stackTraceToString()}")
         return false
     }
     return true

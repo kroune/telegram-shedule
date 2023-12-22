@@ -2,6 +2,8 @@ package data
 
 import IS_TEST
 import kotlinx.coroutines.Job
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -14,7 +16,7 @@ import kotlin.time.Duration.Companion.minutes
 /**
  * it is used to check if bot was initialized
  */
-val initializedBot: MutableSet<Long> = mutableSetOf()
+val initializedBot: MutableMap<Long, Boolean> = mutableMapOf()
 
 /**
  * class name (10Д, 8А, 9М, etc...)
@@ -36,7 +38,6 @@ val updateJob: MutableMap<Long, Job?> = mutableMapOf()
  */
 val storedSchedule: MutableMap<Long, UserSchedule> = mutableMapOf()
 
-val displayMode: MutableMap<Long, OutputMode> = mutableMapOf()
 /**
  * this is used to understand is user should be notified about schedule changes
  */
@@ -48,18 +49,34 @@ val notifyAboutScheduleChanges: MutableMap<Long, Boolean> = mutableMapOf()
 val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
 
 /**
+ * it is used to store all configs
+ */
+object Config {
+    init {
+        loadData()
+    }
+
+    /**
+     * it is used for storing current configs
+     */
+    val configs: MutableMap<Long, ConfigData> = mutableMapOf()
+}
+
+/**
  * it is used to store data for every chat, so they don't have to rerun bot again
  * @param className - class name
  * @param schedule - stored schedule
  * @param pinErrorShown - used for people, who don't have enough skills to give a pin permission for a bot
  * @param notifyAboutScheduleChanges - used for disabling/enabling notification on schedule changes
+ * @param initializedBot - used to check if bot has been initialized
  */
 @Serializable
 data class ConfigData(
     val className: String,
     val schedule: UserSchedule,
     val pinErrorShown: Boolean,
-    val notifyAboutScheduleChanges: Boolean
+    val notifyAboutScheduleChanges: Boolean,
+    val initializedBot: Boolean
 )
 
 /**
@@ -116,7 +133,20 @@ fun deleteData(chatId: Long) {
     val file = File("$dataDirectory$chatId.json")
     if (file.exists()) {
         if (!File("${dataDirectory}outdated/").exists()) File("${dataDirectory}outdated/").mkdir()
-        file.copyTo(File("${dataDirectory}outdated/$chatId.json"))
+        file.copyTo(File("${dataDirectory}outdated/$chatId.json"), overwrite = true)
+        file.delete()
+    }
+}
+
+/**
+ * it is used if json config file is corrupted or doesn't have new fields
+ * @param chatId ID of telegram chat
+ */
+fun invalidateData(chatId: Long) {
+    val file = File("$dataDirectory$chatId.json")
+    if (file.exists()) {
+        if (!File("${dataDirectory}invalid/").exists()) File("${dataDirectory}invalid/").mkdir()
+        file.copyTo(File("${dataDirectory}invalid/$chatId.json"), overwrite = true)
         file.delete()
     }
 }
@@ -134,7 +164,8 @@ fun storeConfigs(chatId: Long) {
             chosenClass[chatId]!!,
             storedSchedule[chatId]!!,
             pinErrorShown[chatId]!!,
-            notifyAboutScheduleChanges[chatId]!!
+            notifyAboutScheduleChanges[chatId]!!,
+            initializedBot[chatId]!!
         )
         val encodedConfigData = Json.encodeToString(configData)
         debug(chatId, configData.toString())
@@ -151,27 +182,30 @@ fun storeConfigs(chatId: Long) {
 /**
  * loads data on program startup
  */
+@OptIn(ExperimentalSerializationApi::class)
 fun loadData() {
     if (!File(dataDirectory).exists()) {
         File(dataDirectory).mkdir()
     }
     File(dataDirectory).walk().forEach {
-        if (it.isDirectory || it.path.contains("outdated")) return@forEach
-        val textFile = it.bufferedReader().use { text ->
-            text.readText()
-        }
-        val configData = Json.decodeFromString<ConfigData>(textFile)
-        val chatId = it.name.dropLast(5).toLong()
-        chosenClass[chatId] = configData.className
-        pinErrorShown[chatId] = configData.pinErrorShown
-        notifyAboutScheduleChanges[chatId] = configData.notifyAboutScheduleChanges
-        initializedBot.add(chatId)
-        storedSchedule[chatId] = configData.schedule
-        scheduleUpdateCoroutine(chatId)
-        debug(chatId, configData.toString())
-    }
-}
+        try {
+            if (it.isDirectory || it.path.contains("outdated")) return@forEach
+            val textFile = it.bufferedReader().use { text ->
+                text.readText()
+            }
+            val configData = Json.decodeFromString<ConfigData>(textFile)
+            val chatId = it.name.dropLast(5).toLong()
+            chosenClass[chatId] = configData.className
+            pinErrorShown[chatId] = configData.pinErrorShown
+            notifyAboutScheduleChanges[chatId] = configData.notifyAboutScheduleChanges
+            storedSchedule[chatId] = configData.schedule
+            initializedBot[chatId] = configData.initializedBot
+            scheduleUpdateCoroutine(chatId)
+            debug(chatId, configData.toString())
+        } catch (e: MissingFieldException) {
+            println("an exception occurred when loading data")
+            invalidateData(it.name.dropLast(5).toLong())
 
-enum class OutputMode {
-    RePin, UpdatePinned
+        }
+    }
 }
