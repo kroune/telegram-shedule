@@ -2,10 +2,7 @@ package data
 
 import IS_TEST
 import kotlinx.coroutines.Job
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.MissingFieldException
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
+import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import scheduleUpdateCoroutine
 import java.io.File
@@ -13,15 +10,6 @@ import java.time.DayOfWeek
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
-/**
- * it is used to check if bot was initialized
- */
-val initializedBot: MutableMap<Long, Boolean> = mutableMapOf()
-
-/**
- * class name (10Д, 8А, 9М, etc...)
- */
-val chosenClass: MutableMap<Long, String> = mutableMapOf()
 
 /**
  * time it waits, before updating data, note that too small values might lead to an ip ban
@@ -29,37 +17,30 @@ val chosenClass: MutableMap<Long, String> = mutableMapOf()
 val updateTime: Duration = 30.minutes
 
 /**
- * it is used to check if bot is running
- */
-val updateJob: MutableMap<Long, Job?> = mutableMapOf()
-
-/**
- * it stores data for every class in schedule
- */
-val storedSchedule: MutableMap<Long, UserSchedule> = mutableMapOf()
-
-/**
- * this is used to understand is user should be notified about schedule changes
- */
-val notifyAboutScheduleChanges: MutableMap<Long, Boolean> = mutableMapOf()
-
-/**
- * it is used not to spam chat with pinning errors and at the same time notifying about permission settings
- */
-val pinErrorShown: MutableMap<Long, Boolean> = mutableMapOf()
-
-/**
  * it is used to store all configs
  */
 object Config {
-    init {
-        loadData()
-    }
+    /**
+     * it is used to check if bot is running
+     */
+    val updateJob: MutableMap<Long, Job?> = mutableMapOf()
 
     /**
      * it is used for storing current configs
      */
     val configs: MutableMap<Long, ConfigData> = mutableMapOf()
+
+    /**
+     * it is used to check if a user has proper data
+     * @param id ID of telegram chat
+     */
+    fun isNotNull(id: Long): Boolean = configs.contains(id)
+
+    /**
+     * it checks if bot was initialized and stops if it wasn't
+     * @param id ID of telegram chat
+     */
+    fun hasStartedBot(id: Long): Boolean = isNotNull(id) && configs[id]!!.initializedBot
 }
 
 /**
@@ -67,15 +48,17 @@ object Config {
  * @param className - class name
  * @param schedule - stored schedule
  * @param pinErrorShown - used for people, who don't have enough skills to give a pin permission for a bot
- * @param notifyAboutScheduleChanges - used for disabling/enabling notification on schedule changes
+ * @param notifyAboutChanges - used for disabling/enabling notification on schedule changes
+ * @param shouldRePin - used for disabling/enabling pinning current schedule
  * @param initializedBot - used to check if bot has been initialized
  */
 @Serializable
 data class ConfigData(
-    val className: String,
-    val schedule: UserSchedule,
-    val pinErrorShown: Boolean,
-    val notifyAboutScheduleChanges: Boolean,
+    var className: String,
+    var schedule: UserSchedule,
+    var pinErrorShown: Boolean,
+    var notifyAboutChanges: Boolean,
+    var shouldRePin: Boolean,
     val initializedBot: Boolean
 )
 
@@ -108,7 +91,14 @@ class Message(
 @Serializable
 class UserSchedule(
     val messages: MutableList<Message>
-)
+) {
+    /**
+     * it is used to check if all messages have valid id
+     */
+    fun hasMessageId(): Boolean {
+        return messages.all { it.messageInfo.messageId != -1L }
+    }
+}
 
 /**
  * it is used to store important info about messages (for telegram part)
@@ -157,25 +147,17 @@ fun invalidateData(chatId: Long) {
  */
 fun storeConfigs(chatId: Long) {
     try {
-        require(
-            chosenClass[chatId] != null && storedSchedule[chatId] != null && notifyAboutScheduleChanges[chatId] != null
-        )
-        val configData = ConfigData(
-            chosenClass[chatId]!!,
-            storedSchedule[chatId]!!,
-            pinErrorShown[chatId]!!,
-            notifyAboutScheduleChanges[chatId]!!,
-            initializedBot[chatId]!!
-        )
-        val encodedConfigData = Json.encodeToString(configData)
-        debug(chatId, configData.toString())
-        val file = File("$dataDirectory$chatId.json")
-        if (!file.exists()) {
-            file.createNewFile()
+        require(Config.isNotNull(chatId))
+        Config.configs[chatId].let {
+            debug(chatId, it.toString())
+            val file = File("$dataDirectory$chatId.json")
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+            file.writeText(Json.encodeToString(it))
         }
-        file.writeText(encodedConfigData)
     } catch (e: IllegalArgumentException) {
-        error(chatId, "an exception occurred when storing configs \n $e")
+        error(chatId, "an exception occurred when storing configs \n ${e.stackTrace}")
     }
 }
 
@@ -187,23 +169,22 @@ fun loadData() {
     if (!File(dataDirectory).exists()) {
         File(dataDirectory).mkdir()
     }
-    File(dataDirectory).walk().forEach {
+    File(dataDirectory).listFiles()!!.filter { it.isFile }.forEach {
         try {
-            if (it.isDirectory || it.path.contains("outdated")) return@forEach
             val textFile = it.bufferedReader().use { text ->
                 text.readText()
             }
             val configData = Json.decodeFromString<ConfigData>(textFile)
             val chatId = it.name.dropLast(5).toLong()
-            chosenClass[chatId] = configData.className
-            pinErrorShown[chatId] = configData.pinErrorShown
-            notifyAboutScheduleChanges[chatId] = configData.notifyAboutScheduleChanges
-            storedSchedule[chatId] = configData.schedule
-            initializedBot[chatId] = configData.initializedBot
+            Config.configs[chatId] = configData
             scheduleUpdateCoroutine(chatId)
+            info(chatId, "loading data from $it")
             debug(chatId, configData.toString())
         } catch (e: MissingFieldException) {
-            println("an exception occurred when loading data")
+            println("an exception occurred when loading data ${e.stackTraceToString()}")
+            if (IS_TEST) invalidateData(it.name.dropLast(5).toLong())
+        } catch (e: SerializationException) {
+            println("an exception occurred when loading data ${e.stackTraceToString()}")
             if (IS_TEST) invalidateData(it.name.dropLast(5).toLong())
         }
     }

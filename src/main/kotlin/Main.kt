@@ -1,4 +1,6 @@
 import data.*
+import data.Config.configs
+import data.Config.updateJob
 import kotlinx.coroutines.*
 import telegram.bot
 import telegram.exists
@@ -28,11 +30,14 @@ fun main() {
  * @param className we are working for
  */
 fun initializeChatValues(chatId: Long, className: String) {
-    initializedBot[chatId] = true
-    chosenClass[chatId] = className
-    pinErrorShown[chatId] = false
-    notifyAboutScheduleChanges[chatId] = true
-    storedSchedule[chatId] = UserSchedule(mutableListOf())
+    configs[chatId] = ConfigData(
+        className = className,
+        schedule = UserSchedule(mutableListOf()),
+        pinErrorShown = false,
+        notifyAboutChanges = true,
+        shouldRePin = true,
+        initializedBot = true
+    )
     info(chatId, "initializing variables")
     debug(chatId, "class name - $className, chosen link - $DEFAULT_LINK")
     scheduleUpdateCoroutine(chatId)
@@ -53,15 +58,15 @@ suspend fun updateSchedule(chatId: Long): Boolean {
                     sendMessage(chatId, "Не удалось найти предыдущие сообщения")
                     it.displayInChat(chatId, true)
                 } else {
-                    if (!storedSchedule[chatId].matchesWith(it)) {
+                    if (!configs[chatId]!!.schedule.matchesWith(it)) {
                         it.displayInChat(chatId, false)
-                        if (notifyAboutScheduleChanges[chatId]!!) sendMessage(
+                        if (configs[chatId]!!.notifyAboutChanges) sendMessage(
                             chatId,
                             "Расписание обновилось, если это не так, свяжитесь с создателем бота (@LichnyiSvetM)"
                         )
                     }
                 }
-                processSchedulePinning(chatId)
+                if (configs[chatId]!!.shouldRePin) processSchedulePinning(chatId)
             }
         }
         debug(chatId, "schedule update took $timeTaken")
@@ -80,7 +85,7 @@ suspend fun updateSchedule(chatId: Long): Boolean {
  * @param chatId ID of telegram chat
  */
 suspend fun scheduleExists(chatId: Long): Boolean {
-    storedSchedule[chatId]!!.messages.forEach {
+    configs[chatId]!!.schedule.messages.forEach {
         it.messageInfo.messageId.let { id ->
             if (id == -1L || !id.exists(chatId)) {
                 return false
@@ -114,9 +119,9 @@ fun scheduleUpdateCoroutine(chatId: Long) {
                 }
             }
             sendMessage(
-                chatId,
-                "Произошло слишком много неожиданных ошибок, бот прекратил обновление расписания, пока " +
-                        "разработчик не разберется с этой проблемой. Используйте /update для перезапуска"
+                chatId, """Произошло слишком много неожиданных ошибок. 
+                    бот прекратил обновление расписания, до тех пор, пока разработчик не разберется с этой проблемой. 
+                    Используйте /update для перезапуска""".trimMargin()
             )
             this.cancel()
             updateJob[chatId] = null

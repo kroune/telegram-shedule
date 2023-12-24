@@ -1,5 +1,6 @@
 import com.elbekd.bot.model.toChatId
 import data.*
+import data.Config.configs
 import org.jetbrains.kotlinx.dataframe.DataFrame
 import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
 import org.jetbrains.kotlinx.dataframe.api.getColumn
@@ -40,9 +41,7 @@ fun getScheduleData(chatId: Long): UserSchedule? {
                 }
             }
             // if we are the end of our dataFrame or row is empty
-            if (index == data.size().nrow - 1 || element.removeNull()
-                    .any { !it.isDigit() } || element.empty()
-            ) return@forEachIndexed
+            if (index == data.size().nrow - 1 || element.removeNull().isBlank()) return@forEachIndexed
 
             element.let {
                 /*
@@ -52,9 +51,11 @@ fun getScheduleData(chatId: Long): UserSchedule? {
                 *         classroom
                 */
 
-                val upperCase = data.getColumnIndex(chosenClass[chatId]!!.uppercase()) != -1
-                val classColumnIndex =
-                    data.getColumnIndex(if (upperCase) chosenClass[chatId]!! else chosenClass[chatId]!!.lowercase())
+                val upperCase = data.getColumnIndex(configs[chatId]!!.className.uppercase()) != -1
+                val classColumnIndex = data.getColumnIndex(
+                    if (upperCase) configs[chatId]!!.className
+                    else configs[chatId]!!.className.lowercase()
+                )
                 val subject = data.getColumn(classColumnIndex)[index].removeNull()
 
                 if (subject.empty() || subject.isBlank()) {
@@ -97,7 +98,8 @@ fun getScheduleData(chatId: Long): UserSchedule? {
  */
 suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolean) {
     info(chatId, "outputting schedule data")
-
+    require(Config.isNotNull(chatId))
+    val configData = configs[chatId]!!
     // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
     this@displayInChat.messages.forEachIndexed { index, message ->
         var werePrevious = false
@@ -116,22 +118,16 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
 
         messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
 
-        if (!shouldResendMessage && storedSchedule[chatId] != null && storedSchedule[chatId]!!.messages.isNotEmpty()
-            && storedSchedule[chatId]!!.messages.all {
-                it.messageInfo.messageId != -1L
-            }
-        ) {
-            if (!storedSchedule[chatId]!!.matchesWith(this)) {
+        if (!shouldResendMessage && configData.schedule.messages.isNotEmpty() && configData.schedule.hasMessageId()) {
+            if (!configData.schedule.matchesWith(this)) {
                 try {
                     val id = bot.editMessageText(
-                        chatId.toChatId(),
-                        storedSchedule[chatId]!!.messages[index].messageInfo.messageId,
-                        text = messageText
+                        chatId.toChatId(), configData.schedule.messages[index].messageInfo.messageId, text = messageText
                     )
                     message.messageInfo = MessageInfo(id.messageId, false)
 
                 } catch (e: Exception) {
-                    error(chatId, "error ${storedSchedule[chatId]!!.messages} ${e.stackTraceToString()}")
+                    error(chatId, "error ${configData.schedule.messages} ${e.stackTraceToString()}")
                 }
             }
         } else {
@@ -139,7 +135,7 @@ suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolea
             message.messageInfo = MessageInfo(id, false)
         }
     }
-    storedSchedule[chatId] = this
+    configData.schedule = this
     storeConfigs(chatId)
 }
 
@@ -152,12 +148,10 @@ suspend fun processSchedulePinning(chatId: Long) {
         when (it.first) {
             Result.NotEnoughRight -> {
                 info(chatId, "not enough rights")
-                if (!pinErrorShown[chatId]!!) {
+                if (!configs[chatId]!!.pinErrorShown) {
                     debug(chatId, "outputting rights warning")
-                    pinErrorShown[chatId] = true
-                    sendMessage(
-                        chatId, "не достаточно прав для закрепления сообщения"
-                    )
+                    configs[chatId]!!.pinErrorShown = true
+                    sendMessage(chatId, "не достаточно прав для закрепления сообщения")
                     storeConfigs(chatId)
                 }
             }
@@ -177,8 +171,8 @@ suspend fun processSchedulePinning(chatId: Long) {
 
             Result.Success -> {
                 debug(chatId, "successfully updated pinned messages")
-                if (pinErrorShown[chatId]!! && it.second) {
-                    pinErrorShown[chatId] = false
+                if (configs[chatId]!!.pinErrorShown && it.second) {
+                    configs[chatId]!!.pinErrorShown = false
                 }
                 storeConfigs(chatId)
             }

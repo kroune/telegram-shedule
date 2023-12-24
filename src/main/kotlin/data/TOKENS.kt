@@ -1,7 +1,7 @@
-package data
-/*
- * this file shouldn't be shared with anyone
+/**
+ * this file shouldn't be shared with anyone, it contains your telegram bot tokens
  */
+package data
 
 /**
  * when uploading somewhere, this token should be deleted;

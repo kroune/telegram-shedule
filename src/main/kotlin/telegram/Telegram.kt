@@ -5,13 +5,14 @@ import com.elbekd.bot.Bot
 import com.elbekd.bot.model.TelegramApiError
 import com.elbekd.bot.model.toChatId
 import data.*
+import data.Config.configs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
- * it creates a telegram bot, using provided token
+ * telegram bot, initialized on start
  */
 val bot: Bot = Bot.createPolling(if (IS_TEST) TEST_TOKEN else PRODUCTION_TOKEN)
 
@@ -56,7 +57,7 @@ suspend fun sendMessage(chatId: Long, text: String): Long {
  */
 suspend fun Long.exists(chatId: Long): Boolean {
     return try {
-        bot.copyMessage("-1".toLong().toChatId(), chatId.toChatId(), this)
+        bot.copyMessage((-1L).toChatId(), chatId.toChatId(), this)
         true
     } catch (e: TelegramApiError) {
         if (e.description.contains("chat not found")) true
@@ -108,7 +109,7 @@ suspend fun pinRequiredMessage(chatId: Long): Pair<Result, Boolean> {
     debug(chatId, "updating pinned message")
     try {
         val day = LocalDate.now().dayOfWeek
-        storedSchedule[chatId]!!.messages.forEach { message ->
+        configs[chatId]!!.schedule.messages.forEach { message ->
             if (message.messageInfo.messageId == -1L) {
                 return Pair(Result.MessageNotFound, false)
             }

@@ -3,7 +3,11 @@ package telegram
 import checkClass
 import com.elbekd.bot.feature.chain.chain
 import com.elbekd.bot.feature.chain.terminateChain
-import data.*
+import data.Config
+import data.Config.configs
+import data.Config.updateJob
+import data.debug
+import data.info
 import displayInChat
 import empty
 import getScheduleData
@@ -21,6 +25,7 @@ fun initializeChains() {
     buildUpdateChain()
     buildChangeClassChain()
     buildPingChain()
+    buildRePinChain()
     buildNotificationChain()
     buildHelpChain()
 }
@@ -30,24 +35,26 @@ fun initializeChains() {
  */
 fun buildRunChain() {
     bot.chain("/start") {
-        info(it.chat.id, "started /start chain")
-        if (initializedBot[it.chat.id] != null && initializedBot[it.chat.id]!!) {
-            info(it.chat.id, "/start chain stopped due to bot, not being initialized")
-            sendMessage(it.chat.id, "Вы уже запускали бота, используйте команды настроек")
-            bot.terminateChain(it.chat.id)
+        val chatId = it.chat.id
+        info(chatId, "started /start chain")
+        if (Config.hasStartedBot(chatId)) {
+            info(chatId, "/start chain stopped due to bot, not being initialized")
+            sendMessage(chatId, "Вы уже запускали бота, используйте команды настроек")
+            bot.terminateChain(chatId)
             return@chain
         } else {
-            debug(it.chat.id, "/start chain started")
-            sendMessage(it.chat.id, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
-            sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
+            debug(chatId, "/start chain started")
+            sendMessage(chatId, "Это чат бот, который будет отправлять расписание в ваш чат (создан @LichnyiSvetM)")
+            sendMessage(chatId, "Назовите ваш класс (например 10Д)")
         }
 
     }.then {
-        it.text!!.checkClass(it.chat.id).let { checkedString ->
+        val chatId = it.chat.id
+        it.text!!.checkClass(chatId).let { checkedString ->
             if (checkedString != null) {
-                sendMessage(it.chat.id, "Полученный класс - \"${checkedString}\"")
-                initializeChatValues(it.chat.id, checkedString)
-            } else sendMessage(it.chat.id, "Класс введен не верно")
+                sendMessage(chatId, "Полученный класс - \"${checkedString}\"")
+                initializeChatValues(chatId, checkedString)
+            } else sendMessage(chatId, "Класс введен не верно")
         }
     }.build()
 }
@@ -57,20 +64,20 @@ fun buildRunChain() {
  */
 fun buildUpdateChain() {
     bot.onCommand("/update") {
-        val id = it.first.chat.id
-        info(id, "starting /update chain")
-        if (initializedBot[id] == null || !initializedBot[id]!!) {
-            info(id, "/update chain stopped due to bot, not being initialized")
-            sendMessage(id, "Вам нужно выполнить команду /start чтобы инициализировать бота")
+        val chatId = it.first.chat.id
+        info(chatId, "starting /update chain")
+        if (!Config.hasStartedBot(chatId)) {
+            info(chatId, "/update chain stopped due to bot, not being initialized")
+            sendMessage(chatId, "Вам нужно выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
-        if (updateJob[id] != null) {
-            updateJob[id]!!.cancel()
-            updateJob[id] = null
+        if (updateJob[chatId] != null) {
+            updateJob[chatId]!!.cancel()
+            updateJob[chatId] = null
         }
-        debug(id, "/update chain started")
-        scheduleUpdateCoroutine(id)
-        sendMessage(id, "Успешно обновлено (будут обновлены закрепленные сообщения)")
+        debug(chatId, "/update chain started")
+        scheduleUpdateCoroutine(chatId)
+        sendMessage(chatId, "Успешно обновлено (будут обновлены закрепленные сообщения)")
     }
 }
 
@@ -96,20 +103,40 @@ fun buildHelpChain() {
 }
 
 /**
+ * it used for changing pinning settings
+ */
+fun buildRePinChain() {
+    bot.onCommand("/repin") {
+        val chatId = it.first.chat.id
+        if (!Config.hasStartedBot(chatId)) {
+            sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
+            return@onCommand
+        }
+        if (configs[chatId]!!.shouldRePin) {
+            sendMessage(chatId, "Сегодняшнее расписание больше не будет закрепляться")
+        } else {
+            sendMessage(chatId, "Теперь сегодняшнее расписание теперь будет закрепляться")
+        }
+        configs[chatId]!!.shouldRePin = !configs[chatId]!!.shouldRePin
+    }
+}
+
+/**
  * it used for changing notifications settings
  */
 fun buildNotificationChain() {
     bot.onCommand("/notify") {
-        val id = it.first.chat.id
-        if (initializationCheckStatus(id)) {
+        val chatId = it.first.chat.id
+        if (!Config.hasStartedBot(chatId)) {
+            sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
-        if (notifyAboutScheduleChanges[id]!!) {
-            sendMessage(id, "Вы больше не будете получать уведомления при обновлении расписания")
+        if (configs[chatId]!!.notifyAboutChanges) {
+            sendMessage(chatId, "Вы больше не будете получать уведомления при обновлении расписания")
         } else {
-            sendMessage(id, "Теперь вы будете получать уведомления при обновлении расписания")
+            sendMessage(chatId, "Теперь вы будете получать уведомления при обновлении расписания")
         }
-        notifyAboutScheduleChanges[id] = !notifyAboutScheduleChanges[id]!!
+        configs[chatId]!!.notifyAboutChanges = !configs[chatId]!!.notifyAboutChanges
     }
 }
 
@@ -127,20 +154,21 @@ fun buildPingChain() {
  */
 fun buildOutputChain() {
     bot.onCommand("/output") {
-        val id = it.first.chat.id
-        info(id, "starting /output chain")
-        if (initializationCheckStatus(id)) {
+        val chatId = it.first.chat.id
+        info(chatId, "starting /output chain")
+        if (!Config.hasStartedBot(chatId)) {
+            sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
             return@onCommand
         }
-        if (updateJob[id] != null) {
-            updateJob[id]!!.cancel()
-            updateJob[id] = null
+        if (updateJob[chatId] != null) {
+            updateJob[chatId]!!.cancel()
+            updateJob[chatId] = null
         }
-        debug(id, "/output chain started")
-        getScheduleData(id)?.let { schedule ->
+        debug(chatId, "/output chain started")
+        getScheduleData(chatId)?.let { schedule ->
             if (schedule.empty()) return@let
-            schedule.displayInChat(id, true)
-            processSchedulePinning(id)
+            schedule.displayInChat(chatId, true)
+            if (configs[chatId]!!.shouldRePin) processSchedulePinning(chatId)
         }
     }
 }
@@ -151,27 +179,30 @@ fun buildOutputChain() {
 fun buildChangeClassChain() {
     // telegram only accepts lower-cased names
     @Suppress("SpellCheckingInspection") bot.chain("/changeclass") {
-        if (initializationCheckStatus(it.chat.id)) {
-            bot.terminateChain(it.chat.id)
+        val chatId = it.chat.id
+        if (!Config.hasStartedBot(chatId)) {
+            sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
+            bot.terminateChain(chatId)
             return@chain
         }
-        debug(it.chat.id, "класс chain started")
-        sendMessage(it.chat.id, "Назовите ваш класс (например 10Д)")
+        debug(chatId, "класс chain started")
+        sendMessage(chatId, "Назовите ваш класс (например 10Д)")
     }.then {
-        it.text!!.checkClass(it.chat.id).let { checkedString ->
+        val chatId = it.chat.id
+        it.text!!.checkClass(chatId).let { checkedString ->
             if (checkedString != null) {
-                sendMessage(it.chat.id, "Класс успешно обновлён")
-                chosenClass[it.chat.id] = checkedString
-                if (updateJob[it.chat.id] != null) {
-                    updateJob[it.chat.id]!!.cancel()
-                    updateJob[it.chat.id] = null
+                sendMessage(chatId, "Класс успешно обновлён")
+                configs[chatId]!!.className = checkedString
+                if (updateJob[chatId] != null) {
+                    updateJob[chatId]!!.cancel()
+                    updateJob[chatId] = null
                 }
-                scheduleUpdateCoroutine(it.chat.id)
-                debug(it.chat.id, "Success update")
-                sendMessage(it.chat.id, "Успешно обновлено (будут обновлены закрепленные сообщения при наличие)")
+                scheduleUpdateCoroutine(chatId)
+                debug(chatId, "Success update")
+                sendMessage(chatId, "Успешно обновлено (будут обновлены закрепленные сообщения при наличие)")
             } else {
-                info(it.chat.id, "Wrong format")
-                sendMessage(it.chat.id, "Не правильный формат ввода класса")
+                info(chatId, "Wrong format")
+                sendMessage(chatId, "Не правильный формат ввода класса")
             }
         }
     }.build()
@@ -196,17 +227,4 @@ fun buildKillChain() {
             bot.stop()
         }
     }.build()
-}
-
-/**
- * it checks if bot was initialized and stops if it wasn't
- * @param chatId ID of telegram chat
- */
-fun initializationCheckStatus(chatId: Long): Boolean {
-    if (initializedBot[chatId] == null || !initializedBot[chatId]!!) {
-        sendAsyncMessage(chatId, "Вам нужно вначале выполнить команду /start чтобы инициализировать бота")
-        bot.terminateChain(chatId)
-        return true
-    }
-    return false
 }
