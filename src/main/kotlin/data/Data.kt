@@ -1,12 +1,14 @@
 package data
 
 import IS_TEST
+import data.Config.configs
 import kotlinx.coroutines.Job
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import scheduleUpdateCoroutine
 import java.io.File
 import java.time.DayOfWeek
+import kotlin.system.exitProcess
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
@@ -176,16 +178,18 @@ fun loadData() {
             }
             val configData = Json.decodeFromString<ConfigData>(textFile)
             val chatId = it.name.dropLast(5).toLong()
-            Config.configs[chatId] = configData
+            configs[chatId] = configData
             scheduleUpdateCoroutine(chatId)
             info(chatId, "loading data from $it")
             debug(chatId, configData.toString())
         } catch (e: MissingFieldException) {
-            println("an exception occurred when loading data ${e.stackTraceToString()}")
+            println("an exception occurred when loading data $it ${e.stackTraceToString()}")
             if (IS_TEST) invalidateData(it.name.dropLast(5).toLong())
+            else exitProcess(-1)
         } catch (e: SerializationException) {
-            println("an exception occurred when loading data ${e.stackTraceToString()}")
+            println("an exception occurred when loading data $it ${e.stackTraceToString()}")
             if (IS_TEST) invalidateData(it.name.dropLast(5).toLong())
+            else exitProcess(-1)
         }
     }
 }

@@ -22,7 +22,7 @@ fun getScheduleData(chatId: Long): UserSchedule? {
 
     try {
         // we read our dataFrame here, we read it in csv
-        @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL()
+        @Suppress("SpellCheckingInspection") val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv&gid=727818446").toURL()
         val data = DataFrame.readCSV(link)
 
         info(chatId, "starting data update")

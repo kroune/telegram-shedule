@@ -126,7 +126,7 @@ fun Any?.empty(): Boolean {
 fun verifyClassNameAvailability(className: String): Boolean {
     try {
         @Suppress("SpellCheckingInspection") val data =
-            DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv").toURL())
+            DataFrame.readCSV(URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv&gid=727818446").toURL())
 
         data.getColumnOrNull(1)?.forEachIndexed { index, element ->
             data.getColumn(0)[index]
