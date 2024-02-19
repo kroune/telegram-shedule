@@ -100,7 +100,8 @@ suspend fun scheduleExists(chatId: Long): Boolean {
  * @param chatId ID of telegram chat
  */
 fun scheduleUpdateCoroutine(chatId: Long) {
-    updateJob[chatId] = CoroutineScope(Dispatchers.Default).launch {
+    @Volatile
+    updateJob[chatId] = CoroutineScope(Dispatchers.Default).async {
         try {
             var failedAttempts = 0
             while (isActive && failedAttempts < 5) {
