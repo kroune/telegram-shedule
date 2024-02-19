@@ -17,4 +17,4 @@ jobs:
         env:
           CI: true
         with:
-          arguments: build
+          arguments: clean build
