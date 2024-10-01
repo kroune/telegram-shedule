@@ -1,181 +1,116 @@
-import com.elbekd.bot.model.toChatId
-import data.*
-import data.Config.configs
-import org.jetbrains.kotlinx.dataframe.DataFrame
-import org.jetbrains.kotlinx.dataframe.api.forEachIndexed
-import org.jetbrains.kotlinx.dataframe.api.getColumn
-import org.jetbrains.kotlinx.dataframe.io.readCSV
-import org.jetbrains.kotlinx.dataframe.size
-import telegram.*
-import java.net.URI
-import java.net.UnknownHostException
-import java.time.DayOfWeek
+import data.parserRepository
+import data.unparsedScheduleParser.ClassName
+import data.unparsedScheduleParser.Lessons
+import data.unparsedScheduleRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DayOfWeek
+import kotlinx.serialization.encodeToString
+import java.io.File
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.time.Duration.Companion.minutes
 
 /**
- * loads data from provided url and converts it to mutableList
- * @param chatId ID of telegram chat
+ * Currently stores schedule info and updates it every 5 minutes
  */
-fun getScheduleData(chatId: Long): UserSchedule? {
-    // schedule for a day
-    lateinit var currentDay: Pair<DayOfWeek?, MutableList<LessonInfo>>
-    val formattedData = mutableListOf<Message>()
+object Schedule {
+    /**
+     * object for safer use of current schedule
+     */
+    object CurrentSchedule {
+        private var privateCurrentSchedule: Map<ClassName, Map<DayOfWeek, Lessons>> = mapOf()
 
-    try {
-        // we read our dataFrame here, we read it in csv
-        @Suppress("SpellCheckingInspection")
-        val link = URI.create("$DEFAULT_LINK/gviz/tq?tqx=out:csv&gid=727818446").toURL()
-        val data = DataFrame.readCSV(link)
-
-        info(chatId, "starting data update")
-        // we iterate over first column, where lesson number is stored
-        data.getColumnOrNull(1)?.forEachIndexed { index, element ->
-            // week day
-            data.getColumn(0)[index].let { dayElement ->
-                if (!dayElement.empty()) {
-                    if (index != 0) {
-                        formattedData.add(
-                            Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
-                        )
-                    }
-                    // clears currentDay value
-                    currentDay = Pair(getDay(dayElement.toString()), mutableListOf())
-                }
-            }
-            // if we are the end of our dataFrame or row is empty
-            if (index == data.size().nrow - 1 || element.removeNull().isBlank()) return@forEachIndexed
-
-            element.let {
-                /*
-                * it is located like
-                *
-                * subject teacher
-                *         classroom
-                */
-
-                val upperCase = data.getColumnIndex(configs[chatId]!!.className.uppercase()) != -1
-                val classColumnIndex = data.getColumnIndex(
-                    if (upperCase) configs[chatId]!!.className
-                    else configs[chatId]!!.className.lowercase()
-                )
-                val subject = data.getColumn(classColumnIndex)[index].removeNull()
-
-                if (subject.empty() || subject.isBlank()) {
-                    currentDay.second.add(LessonInfo("", "", ""))
-                } else {
-                    val teacher = data.getColumn(classColumnIndex + 1)[index].removeNull()
-                    val classroom = data.getColumn(classColumnIndex + 1)[index + 1].removeNull()
-                    currentDay.second.add(LessonInfo(subject, teacher, classroom))
-                }
-            }
-        }
-    } catch (e: IllegalArgumentException) {
-        sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        error(chatId, "Incorrect class name \n ${e.stackTraceToString()}")
-        return UserSchedule(mutableListOf())
-    } catch (e: IndexOutOfBoundsException) {
-        sendAsyncMessage(chatId, "Не удалось обновить информацию, вы уверены, что ввели все данные правильно?")
-        error(chatId, "Incorrect class name \n ${e.stackTraceToString()}")
-        return UserSchedule(mutableListOf())
-    } catch (e: UnknownHostException) {
-        info(chatId, "Failed to connect \n ${e.stackTraceToString()}")
-        return null
-    }
-    formattedData.add(
-        Message(currentDay.first, currentDay.second, MessageInfo(-1L, false))
-    )
-    debug(chatId, "formatted data - $formattedData")
-    return UserSchedule(formattedData)
-}
-
-/**
- * it displays all data in the chat like this:
- *
- *   Monday
- *  PE {в 13} (Ivan Ivanov)
- *  Math {в 1} (Ivan Nikolay)
- *  etc...
- * @param chatId ID of telegram chat
- * @param shouldResendMessage we use it if a user does /output
- */
-suspend fun UserSchedule.displayInChat(chatId: Long, shouldResendMessage: Boolean) {
-    info(chatId, "outputting schedule data")
-    require(Config.isNotNull(chatId))
-    val configData = configs[chatId]!!
-    // we do this backwards, so we don't output non-existing lessons, while keeping info about first ones
-    this@displayInChat.messages.forEachIndexed { index, message ->
-        var werePrevious = false
-        var messageText = ""
-
-        message.lessonInfo.asReversed().forEach { info ->
-            if (info.lesson == "") {
-                if (werePrevious) messageText = "\n $messageText"
-            } else {
-                val classroom = if (info.classroom != "") "{в ${info.classroom}}" else ""
-                val teacher = if (info.teacher != "") "(${info.teacher})" else ""
-                messageText = "${info.lesson} $classroom $teacher \n $messageText"
-                werePrevious = true
-            }
+        /**
+         * updates schedule without notifications, used when initializing
+         */
+        fun setScheduleWithoutNotifications(schedule: Map<ClassName, Map<DayOfWeek, Lessons>>) {
+            privateCurrentSchedule = schedule
         }
 
-        messageText = " ${message.dayOfWeek.russianName()} \n $messageText"
-
-        if (!shouldResendMessage && configData.schedule.messages.isNotEmpty() && configData.schedule.hasMessageId()) {
-            if (!configData.schedule.matchesWith(this)) {
-                try {
-                    val id = bot.editMessageText(
-                        chatId.toChatId(), configData.schedule.messages[index].messageInfo.messageId, text = messageText
-                    )
-                    message.messageInfo = MessageInfo(id.messageId, false)
-
-                } catch (e: Exception) {
-                    error(chatId, "error ${configData.schedule.messages} ${e.stackTraceToString()}")
+        /**
+         * updates schedule and notifies about changes
+         */
+        fun setSchedule(schedule: Map<ClassName, Map<DayOfWeek, Lessons>>) {
+            schedule.forEach { (className, schedule) ->
+                val anyChanges = schedule != (privateCurrentSchedule[className] ?: mapOf<DayOfWeek, Lessons>())
+                if (anyChanges) {
+                    Notifier.processScheduleChange(className, privateCurrentSchedule[className] ?: mapOf(), schedule)
                 }
             }
-        } else {
-            val id = sendMessage(chatId, messageText)
-            message.messageInfo = MessageInfo(id, false)
+            privateCurrentSchedule = schedule
+            save()
+        }
+
+        /**
+         * just returns current schedule
+         */
+        fun getSchedule(): Map<ClassName, Map<DayOfWeek, Lessons>> {
+            return privateCurrentSchedule
         }
     }
-    configData.schedule = this
-    storeConfigs(chatId)
-}
 
-/**
- * this function processes schedule pinging and handle errors
- * @param chatId ID of telegram chat
- */
-suspend fun processSchedulePinning(chatId: Long) {
-    pinRequiredMessage(chatId).let {
-        when (it.first) {
-            Result.NotEnoughRight -> {
-                info(chatId, "not enough rights")
-                if (!configs[chatId]!!.pinErrorShown) {
-                    debug(chatId, "outputting rights warning")
-                    configs[chatId]!!.pinErrorShown = true
-                    sendMessage(chatId, "не достаточно прав для закрепления сообщения")
-                    storeConfigs(chatId)
-                }
+    /**
+     * current schedule
+     */
+    var currentSchedule: Map<ClassName, Map<DayOfWeek, Lessons>>
+        get() {
+            return CurrentSchedule.getSchedule()
+        }
+        set(value) {
+            CurrentSchedule.setSchedule(value)
+        }
+
+    private fun save() {
+        val configDir = File(CONFIGURATION_DIRECTORY)
+        configDir.mkdirs()
+        val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
+        if (!configFile.exists()) {
+            configFile.createNewFile()
+        }
+        val text = jsonClient.encodeToString<Map<ClassName, Map<DayOfWeek, Lessons>>>(currentSchedule)
+        configFile.writeText(text)
+    }
+
+    init {
+        val configDir = File(CONFIGURATION_DIRECTORY)
+        configDir.mkdirs()
+        val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
+        if (configFile.exists()) {
+            jsonClient.decodeFromString<Map<ClassName, Map<DayOfWeek, Lessons>>>(configFile.readText()).let {
+                CurrentSchedule.setScheduleWithoutNotifications(it)
             }
+        }
+    }
 
-            Result.ChatNotFound -> {
-                info(chatId, "chat with id $chatId was deleted")
-                deleteData(chatId)
-            }
+    /**
+     * list of available classes schedule (all chars are uppercase)
+     */
+    var availableClasses: List<ClassName>? = null
 
-            Result.Error -> {
-                error(chatId, "an error has occurred")
-                //TODO: add error counter and retry
-            }
+    /**
+     * currently working coroutine for schedule update
+     * it is used wait until we finish fetching schedule, when [availableClasses] is null
+     */
+    var currentUpdateJob: Job? = null
 
-            Result.MessageNotFound -> {
-            }
+    private suspend fun CoroutineScope.syncChanges() {
+        currentUpdateJob = launch {
+            val unparsedSchedule = unparsedScheduleRepository.getSchedule()
+            availableClasses = parserRepository.getClassesNames(unparsedSchedule).map { it.second }
+            currentSchedule = parserRepository.parse(unparsedSchedule)
+        }
+        currentUpdateJob?.join()
+    }
 
-            Result.Success -> {
-                debug(chatId, "successfully updated pinned messages")
-                if (configs[chatId]!!.pinErrorShown && it.second) {
-                    configs[chatId]!!.pinErrorShown = false
-                }
-                storeConfigs(chatId)
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                syncChanges()
+                delay(5.minutes)
             }
         }
     }

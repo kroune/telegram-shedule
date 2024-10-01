@@ -1,99 +1,52 @@
-import data.LessonInfo
-import data.UserSchedule
-import java.time.DayOfWeek
-
-
 /**
- * this is used for week days translation
+ * filters elements and casts it to provided type, compiler doesn't smart cast filters results
+ *
+ * for example, you filter null values, and you don't want to add !!
  */
-val weekDaysMapName: Map<DayOfWeek, String> = mapOf(
-    DayOfWeek.MONDAY to "Понедельник",
-
-    DayOfWeek.TUESDAY to "Вторник",
-
-    DayOfWeek.WEDNESDAY to "Среда",
-
-    DayOfWeek.THURSDAY to "Четверг",
-
-    DayOfWeek.FRIDAY to "Пятница",
-
-    DayOfWeek.SATURDAY to "Суббота",
-
-    DayOfWeek.SUNDAY to "Воскресенье"
-)
-
-/**
- * this is used to get week day name, which program can use
- */
-@Suppress("SpellCheckingInspection", "RedundantSuppression")
-val stringToWeekDaysMap: Map<String, DayOfWeek> = mapOf(
-    "поне" to DayOfWeek.MONDAY,
-    "пн" to DayOfWeek.MONDAY,
-
-    "вт" to DayOfWeek.TUESDAY,
-
-    "ср" to DayOfWeek.WEDNESDAY,
-
-    "чет" to DayOfWeek.THURSDAY,
-    "чт" to DayOfWeek.THURSDAY,
-
-    "пят" to DayOfWeek.FRIDAY,
-    "пт" to DayOfWeek.FRIDAY,
-
-    "суб" to DayOfWeek.SATURDAY,
-    "сб" to DayOfWeek.SATURDAY,
-
-    "вос" to DayOfWeek.SUNDAY,
-    "вс" to DayOfWeek.SUNDAY,
-)
-
-/**
- * Adds Russian translation to week days
- */
-fun DayOfWeek?.russianName(): String {
-    return weekDaysMapName[this] ?: ""
+inline fun <T, C : MutableCollection<K>, K> Iterable<T>.unsafeFilterTo(destination: C, predicate: (T) -> Boolean): C {
+    @Suppress("UNCHECKED_CAST")
+    for (element in this) if (predicate(element)) destination.add(element as K)
+    return destination
 }
 
 /**
- * it is used to interpreter day of week's names and store them in a better format
- * (used for pinning messages (@see processPin))
- * @param text representation of weekday in Russian
+ * drops elements until predicate returns true, drops 1 more element and then returns
  */
-fun getDay(text: String): DayOfWeek? {
-    text.lowercase().let {
-        stringToWeekDaysMap.onEach { (t, u) ->
-            if (it.contains(t))
-                return u
+inline fun <T> Iterable<T>.dropWhileInclusive(predicate: (T) -> Boolean): List<T> {
+    var yielding = false
+    val list = ArrayList<T>()
+    for (item in this)
+        if (yielding)
+            list.add(item)
+        else if (!predicate(item)) {
+            yielding = true
         }
+    return list
+}
+
+/**
+ * maps elements as a pair of index and element
+ */
+fun <T> Iterable<T>.mapWithIndexes(): List<Pair<Int, T>> {
+    return this.mapIndexed { index, element ->
+        Pair(index, element)
     }
-    return null
 }
 
 /**
- * it is used to understand if we need to edit a message
- * (if our new text matches the previous one, it throws Telegram API error)
- * @param compare - new schedule we want to compare
- * (we compare everything except for messageInfo)
+ * adds [element] to the collection [count] times
  */
-fun UserSchedule?.matchesWith(compare: UserSchedule): Boolean {
-    if (this == null || this.messages.isEmpty()) return false
-    this.messages.forEachIndexed { index, message ->
-        val compareMessage = compare.messages[index]
-        if (message.dayOfWeek != compareMessage.dayOfWeek) {
-            return false
-        }
-        message.lessonInfo.forEachIndexed { index1, lessonInfo ->
-            if (!lessonInfo.matchesWith(compareMessage.lessonInfo[index1]))
-                return false
-        }
+fun <T> MutableCollection<T>.repeatedAdd(element: T, count: Int) {
+    repeat(count) {
+        this.add(element)
     }
-    return true
 }
 
 /**
- * this is used to understand is LessonInfo matches a given one
- * @param compare this one we are comparing to
+ * maps elements as a pair of index and element and performs operation on element
  */
-fun LessonInfo.matchesWith(compare: LessonInfo): Boolean {
-    return !(this.lesson != compare.lesson || this.classroom != compare.classroom || this.teacher != compare.teacher)
+inline fun <T, R> Iterable<T>.mapWithIndexes(transform: (T) -> R): List<Pair<Int, R>> {
+    return this.mapIndexed { index, element ->
+        Pair(index, transform(element))
+    }
 }
