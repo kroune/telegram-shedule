@@ -4,11 +4,12 @@ import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.annotations.CommandHandler
 import eu.vendeli.tgbot.api.message.message
 import eu.vendeli.tgbot.types.internal.MessageUpdate
+import io.github.kroune.VERSION
 
 /**
- * Simple ping - pong command to check if bot is running
+ * Outputs information about bot version
  */
-@CommandHandler(["/ping"])
-suspend fun ping(update: MessageUpdate, bot: TelegramBot) {
-    message { "pong" }.send(update.message.chat, bot)
+@CommandHandler(["/version"])
+suspend fun version(update: MessageUpdate, bot: TelegramBot) {
+    message { VERSION.toString() }.send(update.message.chat, bot)
 }

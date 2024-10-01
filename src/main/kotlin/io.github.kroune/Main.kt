@@ -1,3 +1,5 @@
+package io.github.kroune
+
 import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.types.internal.HttpLogLevel
 import eu.vendeli.tgbot.types.internal.LogLvl
@@ -32,7 +34,7 @@ val jsonClient = Json {
  */
 fun main() {
     runBlocking {
-        Schedule
+        ScheduleUpdater
         bot.handleUpdates()
     }
 }

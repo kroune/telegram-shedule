@@ -1,7 +1,7 @@
-import data.parserRepository
-import data.unparsedScheduleParser.ClassName
-import data.unparsedScheduleParser.Lessons
-import data.unparsedScheduleRepository
+package io.github.kroune
+
+import io.github.kroune.unparsedScheduleParser.ClassName
+import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,11 +17,11 @@ import kotlin.time.Duration.Companion.minutes
 /**
  * Currently stores schedule info and updates it every 5 minutes
  */
-object Schedule {
+object ScheduleUpdater {
     /**
      * object for safer use of current schedule
      */
-    object CurrentSchedule {
+    object Schedule {
         private var privateCurrentSchedule: Map<ClassName, Map<DayOfWeek, Lessons>> = mapOf()
 
         /**
@@ -56,35 +56,23 @@ object Schedule {
     /**
      * current schedule
      */
-    var currentSchedule: Map<ClassName, Map<DayOfWeek, Lessons>>
-        get() {
-            return CurrentSchedule.getSchedule()
-        }
-        set(value) {
-            CurrentSchedule.setSchedule(value)
-        }
+    var schedule
+        get() = Schedule.getSchedule()
+        set(value) = Schedule.setSchedule(value)
 
     private fun save() {
-        val configDir = File(CONFIGURATION_DIRECTORY)
-        configDir.mkdirs()
-        val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
-        if (!configFile.exists()) {
-            configFile.createNewFile()
-        }
-        val text = jsonClient.encodeToString<Map<ClassName, Map<DayOfWeek, Lessons>>>(currentSchedule)
-        configFile.writeText(text)
+        {
+            val configDir = File(CONFIGURATION_DIRECTORY)
+            configDir.mkdirs()
+            val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
+            if (!configFile.exists()) {
+                configFile.createNewFile()
+            }
+            val text = jsonClient.encodeToString<Map<ClassName, Map<DayOfWeek, Lessons>>>(schedule)
+            configFile.writeText(text)
+        }.retryableExitedOnFatal(20)
     }
 
-    init {
-        val configDir = File(CONFIGURATION_DIRECTORY)
-        configDir.mkdirs()
-        val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
-        if (configFile.exists()) {
-            jsonClient.decodeFromString<Map<ClassName, Map<DayOfWeek, Lessons>>>(configFile.readText()).let {
-                CurrentSchedule.setScheduleWithoutNotifications(it)
-            }
-        }
-    }
 
     /**
      * list of available classes schedule (all chars are uppercase)
@@ -97,20 +85,28 @@ object Schedule {
      */
     var currentUpdateJob: Job? = null
 
-    private suspend fun CoroutineScope.syncChanges() {
-        currentUpdateJob = launch {
-            val unparsedSchedule = unparsedScheduleRepository.getSchedule()
-            availableClasses = parserRepository.getClassesNames(unparsedSchedule).map { it.second }
-            currentSchedule = parserRepository.parse(unparsedSchedule)
-        }
-        currentUpdateJob?.join()
-    }
-
     init {
+        {
+            val configDir = File(CONFIGURATION_DIRECTORY)
+            configDir.mkdirs()
+            val configFile = File(CONFIGURATION_DIRECTORY, "schedule.json")
+            if (configFile.exists()) {
+                jsonClient.decodeFromString<Map<ClassName, Map<DayOfWeek, Lessons>>>(configFile.readText()).let {
+                    Schedule.setScheduleWithoutNotifications(it)
+                }
+            }
+        }.retryableExitedOnFatal(20)
         CoroutineScope(Dispatchers.IO).launch {
             while (true) {
-                syncChanges()
-                delay(5.minutes)
+                suspend {
+                    currentUpdateJob = launch {
+                        val unparsedSchedule = unparsedScheduleRepository.getSchedule()
+                        availableClasses = parserRepository.getClassesNames(unparsedSchedule).map { it.second }
+                        schedule = parserRepository.parse(unparsedSchedule).getOrThrow()
+                    }
+                    currentUpdateJob?.join()
+                    delay(5.minutes)
+                }.retryableExitedOnFatal(retries = 20, delay = 1.minutes)
             }
         }
     }

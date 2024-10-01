@@ -1,16 +1,16 @@
-package data.updater
+package io.github.kroune.updater
 
-import EDITED_MESSAGE_IS_THE_SAME_TG_ERROR
-import Notifier.transformToMessage
-import bot
-import data.configurationRepository
-import data.translationRepository
-import data.unparsedScheduleParser.Lessons
 import eu.vendeli.tgbot.api.message.editMessageText
 import eu.vendeli.tgbot.api.message.message
 import eu.vendeli.tgbot.types.chat.Chat
 import eu.vendeli.tgbot.types.internal.getOrNull
 import eu.vendeli.tgbot.types.internal.onFailure
+import io.github.kroune.EDITED_MESSAGE_IS_THE_SAME_TG_ERROR
+import io.github.kroune.Notifier.transformToMessage
+import io.github.kroune.bot
+import io.github.kroune.configurationRepository
+import io.github.kroune.translationRepository
+import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

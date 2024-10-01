@@ -1,4 +1,4 @@
-package data.translation
+package io.github.kroune.translation
 
 import kotlinx.datetime.DayOfWeek
 

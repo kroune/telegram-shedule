@@ -1,16 +1,19 @@
-package data.configuration
+package io.github.kroune.configuration
 
-import Schedule.currentSchedule
-import data.defaultOutputMode
-import data.unparsedScheduleParser.ClassName
-import data.updater.UpdateI
 import eu.vendeli.tgbot.types.chat.Chat
-import jsonClient
+import io.github.kroune.CONFIGURATION_DIRECTORY
+import io.github.kroune.ScheduleUpdater.schedule
+import io.github.kroune.defaultOutputMode
+import io.github.kroune.jsonClient
+import io.github.kroune.retryableExitedOnFatal
+import io.github.kroune.unparsedScheduleParser.ClassName
+import io.github.kroune.updater.UpdateI
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import java.io.File
+import kotlin.collections.get
 
 /**
  * Default implementation of [ConfigurationRepositoryI].
@@ -20,8 +23,6 @@ class ConfigurationRepositoryImpl : ConfigurationRepositoryI {
     private var chatToClassName: MutableMap<Chat, ClassName> = hashMapOf()
     private var outputModes: MutableMap<Chat, UpdateI> = hashMapOf()
     private var oldMessageIds: MutableMap<Chat, List<Long>> = hashMapOf()
-
-    private val configurationDirectory = "data/"
 
     @OptIn(ExperimentalSerializationApi::class)
     @Serializable
@@ -34,36 +35,40 @@ class ConfigurationRepositoryImpl : ConfigurationRepositoryI {
     )
 
     private fun save() {
-        val configDir = File(configurationDirectory)
-        configDir.mkdirs()
-        val configFile = File(configurationDirectory, "config.json")
-        if (!configFile.exists()) {
-            configFile.createNewFile()
-        }
-        val configuration = Configuration(classNameToChats, chatToClassName, outputModes, oldMessageIds)
-        val text = jsonClient.encodeToString<Configuration>(configuration)
-        configFile.writeText(text)
+        {
+            val configDir = File(CONFIGURATION_DIRECTORY)
+            configDir.mkdirs()
+            val configFile = File(CONFIGURATION_DIRECTORY, "config.json")
+            if (!configFile.exists()) {
+                configFile.createNewFile()
+            }
+            val configuration = Configuration(classNameToChats, chatToClassName, outputModes, oldMessageIds)
+            val text = jsonClient.encodeToString<Configuration>(configuration)
+            configFile.writeText(text)
+        }.retryableExitedOnFatal()
     }
 
     init {
-        val configDir = File(configurationDirectory)
-        configDir.mkdirs()
-        val configFile = File(configurationDirectory, "config.json")
-        if (configFile.exists()) {
-            jsonClient.decodeFromString<Configuration>(configFile.readText()).let {
-                classNameToChats = it.classNameToChats
-                chatToClassName = it.chatToClassName
-                outputModes = it.outputModes
-                oldMessageIds = it.oldMessageIds
+        {
+            val configDir = File(CONFIGURATION_DIRECTORY)
+            configDir.mkdirs()
+            val configFile = File(CONFIGURATION_DIRECTORY, "config.json")
+            if (configFile.exists()) {
+                jsonClient.decodeFromString<Configuration>(configFile.readText()).let {
+                    classNameToChats = it.classNameToChats
+                    chatToClassName = it.chatToClassName
+                    outputModes = it.outputModes
+                    oldMessageIds = it.oldMessageIds
+                }
             }
-        }
+        }.retryableExitedOnFatal()
     }
 
     override fun setUserWatchedClass(chat: Chat, newClassName: String) {
         getOutputMode(chat).notifyUserAboutChanges(
             chat,
-            currentSchedule[getWatchedClassForChat(chat)] ?: mapOf(),
-            currentSchedule[newClassName] ?: mapOf()
+            schedule[getWatchedClassForChat(chat)] ?: mapOf(),
+            schedule[newClassName] ?: mapOf()
         )
         classNameToChats[getWatchedClassForChat(chat)]?.remove(chat)
         chatToClassName[chat] = newClassName

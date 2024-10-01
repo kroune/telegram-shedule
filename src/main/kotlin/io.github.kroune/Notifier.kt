@@ -1,7 +1,7 @@
-import data.configurationRepository
-import data.translationRepository
-import data.unparsedScheduleParser.ClassName
-import data.unparsedScheduleParser.Lessons
+package io.github.kroune
+
+import io.github.kroune.unparsedScheduleParser.ClassName
+import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.datetime.DayOfWeek
 
 /**

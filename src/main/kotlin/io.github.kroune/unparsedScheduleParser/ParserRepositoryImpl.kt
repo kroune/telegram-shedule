@@ -1,10 +1,10 @@
-package data.unparsedScheduleParser
+package io.github.kroune.unparsedScheduleParser
 
-import dropWhileInclusive
+import io.github.kroune.dropWhileInclusive
+import io.github.kroune.mapWithIndexes
+import io.github.kroune.repeatedAdd
+import io.github.kroune.unsafeFilterTo
 import kotlinx.datetime.DayOfWeek
-import mapWithIndexes
-import repeatedAdd
-import unsafeFilterTo
 import kotlin.collections.getOrNull
 import kotlin.text.isNullOrEmpty
 import kotlin.text.toInt
@@ -92,25 +92,30 @@ class ParserRepositoryImpl : ParserRepositoryI {
         }
         return null
     }
-    override fun parse(data: List<List<String>>): MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>> {
-        val weekDaysIndexesRanges = getWeekDaysIndexesRanges(data)
-        val schedule: MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>> = mutableMapOf()
 
-        getClassesNames(data).forEach { (columnIndex, className) ->
-            weekDaysIndexesRanges.forEach { (range, weekDay) ->
-                // map of class name to schedule for this day
-                val weekDaySchedule: Lessons = mutableListOf()
+    override fun parse(
+        data: List<List<String>>
+    ): Result<MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>>> {
+        return runCatching {
+            val weekDaysIndexesRanges = getWeekDaysIndexesRanges(data)
+            val schedule: MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>> = mutableMapOf()
 
-                range.forEach { rowIndex ->
-                    val lessonInfo = getLessonsInfo(rowIndex, columnIndex, data) ?: return@forEach
-                    weekDaySchedule.repeatedAdd(null, lessonInfo.first - (weekDaySchedule.size + 1))
-                    weekDaySchedule.add(lessonInfo.second)
+            getClassesNames(data).forEach { (columnIndex, className) ->
+                weekDaysIndexesRanges.forEach { (range, weekDay) ->
+                    // map of class name to schedule for this day
+                    val weekDaySchedule: Lessons = mutableListOf()
+
+                    range.forEach { rowIndex ->
+                        val lessonInfo = getLessonsInfo(rowIndex, columnIndex, data) ?: return@forEach
+                        weekDaySchedule.repeatedAdd(null, lessonInfo.first - (weekDaySchedule.size + 1))
+                        weekDaySchedule.add(lessonInfo.second)
+                    }
+                    schedule.getOrPut(className) {
+                        mutableMapOf<DayOfWeek, Lessons>()
+                    }[weekDay] = weekDaySchedule
                 }
-                schedule.getOrPut(className) {
-                    mutableMapOf<DayOfWeek, Lessons>()
-                }[weekDay] = weekDaySchedule
             }
+            schedule
         }
-        return schedule
     }
 }

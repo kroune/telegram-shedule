@@ -1,7 +1,7 @@
-package data
+package io.github.kroune
 
-import data.updater.EditPreviousOnChange
-import data.updater.UpdateI
+import io.github.kroune.updater.EditPreviousOnChange
+import io.github.kroune.updater.UpdateI
 
 /**
  * is user didn't specify output mode, this mode will be used

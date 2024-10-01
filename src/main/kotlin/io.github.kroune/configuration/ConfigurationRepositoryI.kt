@@ -1,8 +1,8 @@
-package data.configuration
+package io.github.kroune.configuration
 
-import data.unparsedScheduleParser.ClassName
-import data.updater.UpdateI
 import eu.vendeli.tgbot.types.chat.Chat
+import io.github.kroune.unparsedScheduleParser.ClassName
+import io.github.kroune.updater.UpdateI
 
 /**
  * Interface for bot configuration
@@ -35,7 +35,7 @@ sealed interface ConfigurationRepositoryI {
 
     /**
      * @param chat chat
-     * @return output mode of the user or [data.defaultOutputMode] if it wasn't overridden yet
+     * @return output mode of the user or [io.github.kroune.defaultOutputMode] if it wasn't overridden yet
      */
     fun getOutputMode(chat: Chat): UpdateI
 

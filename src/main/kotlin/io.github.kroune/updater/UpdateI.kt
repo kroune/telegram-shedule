@@ -1,7 +1,7 @@
-package data.updater
+package io.github.kroune.updater
 
-import data.unparsedScheduleParser.Lessons
 import eu.vendeli.tgbot.types.chat.Chat
+import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 
@@ -13,7 +13,7 @@ sealed interface UpdateI {
     /**
      * pretty name of the mode
      * it will be sent in the list of available modes
-     * @see [tg.handler.changeOutputMode]
+     * @see [io.github.kroune.tg.handler.changeOutputMode]
      */
     val modeName: String
 

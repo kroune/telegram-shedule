@@ -1,4 +1,4 @@
-package data.googleSheetsService
+package io.github.kroune.googleSheetsService
 
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
@@ -12,6 +12,7 @@ import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.Sheets.Builder
 import com.google.api.services.sheets.v4.SheetsScopes
+import io.github.kroune.retryableExitedOnFatal
 import java.io.File
 
 /**
@@ -27,21 +28,24 @@ class GoogleSheetsServiceRepositoryImpl: GoogleSheetsRepositoryServiceI {
     private val credentialsFilePath = System.getenv("credentialsFilePath")
 
     private fun getCredentials(httpTransport: NetHttpTransport?): Credential {
-        val credentials = File(credentialsFilePath).reader()
-        val clientSecrets = GoogleClientSecrets.load(jsonFactory, credentials)
+         return {
+            val credentials = File(credentialsFilePath).reader()
+            val clientSecrets = GoogleClientSecrets.load(jsonFactory, credentials)
 
-        val flow = GoogleAuthorizationCodeFlow.Builder(
-            httpTransport, jsonFactory, clientSecrets, accessScopes
-        )
-            .setDataStoreFactory(FileDataStoreFactory(File(tokensStoreDirectoryPath)))
-            .setAccessType("offline")
-            .build()
-        val receiver = LocalServerReceiver.Builder().setPort(8888).build()
-        return AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
+            val flow = GoogleAuthorizationCodeFlow.Builder(
+                httpTransport, jsonFactory, clientSecrets, accessScopes
+            )
+                .setDataStoreFactory(FileDataStoreFactory(File(tokensStoreDirectoryPath)))
+                .setAccessType("offline")
+                .build()
+            val receiver = LocalServerReceiver.Builder().setPort(8888).build()
+            AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
+        }.retryableExitedOnFatal()
     }
 
-    override val service: Sheets =
+    override val service: Sheets = run {
         Builder(httpTransport, jsonFactory, getCredentials(httpTransport))
             .setApplicationName(applicationName)
             .build()
+    }
 }

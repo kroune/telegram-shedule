@@ -1,11 +1,7 @@
 @file:Suppress("MatchingDeclarationName")
 
-package tg.handler
+package io.github.kroune.tg.handler
 
-import Schedule.availableClasses
-import Schedule.currentUpdateJob
-import data.configurationRepository
-import data.translationRepository
 import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.annotations.CommandHandler
 import eu.vendeli.tgbot.annotations.InputHandler
@@ -14,6 +10,10 @@ import eu.vendeli.tgbot.interfaces.helper.Guard
 import eu.vendeli.tgbot.types.User
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import eu.vendeli.tgbot.types.internal.ProcessedUpdate
+import io.github.kroune.ScheduleUpdater.availableClasses
+import io.github.kroune.ScheduleUpdater.currentUpdateJob
+import io.github.kroune.configurationRepository
+import io.github.kroune.translationRepository
 
 /**
  * @return false if there is no such class
@@ -31,7 +31,7 @@ class ClassSelectionGuard : Guard {
         currentUpdateJob?.join()
         if (availableClasses?.contains(update.text.uppercase()) != true) {
             message { translationRepository.classNotFoundResponse }.send(chat, bot)
-            message(translationRepository.availableClassesList).send(chat, bot)
+            message { translationRepository.availableClassesList }.send(chat, bot)
             message { availableClasses?.joinToString("\n") ?: "" }.send(chat, bot)
             return false
         }

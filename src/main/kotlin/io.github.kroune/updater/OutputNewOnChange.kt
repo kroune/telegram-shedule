@@ -1,10 +1,10 @@
-package data.updater
+package io.github.kroune.updater
 
-import Notifier.transformToMessage
-import bot
-import data.unparsedScheduleParser.Lessons
 import eu.vendeli.tgbot.api.message.message
 import eu.vendeli.tgbot.types.chat.Chat
+import io.github.kroune.Notifier.transformToMessage
+import io.github.kroune.bot
+import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

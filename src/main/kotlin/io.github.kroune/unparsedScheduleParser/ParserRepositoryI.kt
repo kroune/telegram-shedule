@@ -1,4 +1,4 @@
-package data.unparsedScheduleParser
+package io.github.kroune.unparsedScheduleParser
 
 import kotlinx.datetime.DayOfWeek
 
@@ -23,5 +23,5 @@ sealed interface ParserRepositoryI {
      * @param data raw schedule
      * @return map of class name to (map of weekday to lessons)
      */
-    fun parse(data: List<List<String>>): MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>>
+    fun parse(data: List<List<String>>): Result<MutableMap<ClassName, MutableMap<DayOfWeek, Lessons>>>
 }

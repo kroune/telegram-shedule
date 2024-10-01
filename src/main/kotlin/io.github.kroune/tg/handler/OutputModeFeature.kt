@@ -1,10 +1,7 @@
 @file:Suppress("MatchingDeclarationName")
-package tg.handler
 
-import Schedule.currentSchedule
-import data.configurationRepository
-import data.translationRepository
-import data.updater.UpdateI
+package io.github.kroune.tg.handler
+
 import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.annotations.CommandHandler
 import eu.vendeli.tgbot.annotations.InputHandler
@@ -13,6 +10,10 @@ import eu.vendeli.tgbot.interfaces.helper.Guard
 import eu.vendeli.tgbot.types.User
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import eu.vendeli.tgbot.types.internal.ProcessedUpdate
+import io.github.kroune.ScheduleUpdater.schedule
+import io.github.kroune.configurationRepository
+import io.github.kroune.translationRepository
+import io.github.kroune.updater.UpdateI
 import kotlin.reflect.full.createInstance
 
 
@@ -73,7 +74,7 @@ suspend fun selectOutputMode(update: MessageUpdate, user: User, bot: TelegramBot
         outputMode.notifyUserAboutChanges(
             chat,
             mapOf(),
-            currentSchedule[it] ?: mapOf()
+            schedule[it] ?: mapOf()
         )
     }
     bot.inputListener.del(user.id)

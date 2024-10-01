@@ -8,8 +8,8 @@ plugins {
     application
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+group = "io.github.kroune"
+version = "1.0"
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -31,5 +31,5 @@ kotlin {
 }
 
 application {
-    mainClass.set("MainKt")
+    this.mainClass.set("io.github.kroune.MainKt")
 }

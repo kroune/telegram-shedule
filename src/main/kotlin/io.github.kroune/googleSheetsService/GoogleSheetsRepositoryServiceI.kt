@@ -1,4 +1,4 @@
-package data.googleSheetsService
+package io.github.kroune.googleSheetsService
 
 import com.google.api.services.sheets.v4.Sheets
 

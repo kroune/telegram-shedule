@@ -339,7 +339,7 @@ naming:
     excludeClassPattern: '$^'
   InvalidPackageDeclaration:
     active: true
-    rootPackage: ''
+    rootPackage: 'io.github.kroune'
     requireRootInDeclaration: false
   LambdaParameterNaming:
     active: false

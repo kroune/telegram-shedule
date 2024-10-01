@@ -1,4 +1,4 @@
-package data.unparsedSchedule
+package io.github.kroune.unparsedSchedule
 
 /**
  * Gets unparsed schedule data
