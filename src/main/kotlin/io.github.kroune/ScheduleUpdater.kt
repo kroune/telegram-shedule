@@ -105,7 +105,7 @@ object ScheduleUpdater {
                         schedule = parserRepository.parse(unparsedSchedule).getOrThrow()
                     }
                     currentUpdateJob?.join()
-                    delay(5.minutes)
+                    delay(20.minutes)
                 }.retryableExitedOnFatal(retries = 20, delay = 1.minutes)
             }
         }
