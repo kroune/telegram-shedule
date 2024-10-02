@@ -51,9 +51,6 @@ class OutputModeSelectionGuard : Guard {
         if (!isFound) {
             val chat = message.chat
             message { translationRepository.outputModeNotFound }.send(chat, bot)
-            bot.inputListener.set(user) {
-                "outputModeSelection"
-            }
         }
         return isFound
     }
