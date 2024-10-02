@@ -86,7 +86,11 @@ class ParserRepositoryImpl : ParserRepositoryI {
         val lessonNumber = data[rowIndex].getOrNull(lessonsColumnIndex)
         val subject = data[rowIndex].getOrNull(columnIndex)
         val teacher = data[rowIndex].getOrNull(columnIndex + 1)
-        val classroom = data[rowIndex + 1].getOrNull(columnIndex + 1)
+        val classroom = data[rowIndex + 1].getOrNull(columnIndex + 1)?.ifBlank { null }
+//        val secondGroupExists = data[rowIndex].getOrNull(columnIndex + 2)?.startsWith("/")
+//        val secondGroupSubject = data[rowIndex].getOrNull(columnIndex + 2)?.drop(1)?.ifBlank { null }
+//        val secondGroupTeacher = data[rowIndex].getOrNull(columnIndex + 3)?.drop(1)?.ifBlank { null }
+//        val secondGroupClassroom = data[rowIndex + 1].getOrNull(columnIndex + 3)?.drop(1)?.ifBlank { null }
         if (!subject.isNullOrEmpty() && teacher != null && lessonNumber?.toIntOrNull() != null) {
             return Pair(lessonNumber.toInt(), Triple(subject, teacher, classroom))
         }

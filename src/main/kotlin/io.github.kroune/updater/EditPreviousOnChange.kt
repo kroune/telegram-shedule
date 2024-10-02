@@ -2,6 +2,7 @@ package io.github.kroune.updater
 
 import eu.vendeli.tgbot.api.message.editMessageText
 import eu.vendeli.tgbot.api.message.message
+import eu.vendeli.tgbot.types.ParseMode
 import eu.vendeli.tgbot.types.chat.Chat
 import eu.vendeli.tgbot.types.internal.getOrNull
 import eu.vendeli.tgbot.types.internal.onFailure
@@ -37,6 +38,8 @@ class EditPreviousOnChange : UpdateI {
                 oldMessages.forEachIndexed { index, messageId ->
                     editMessageText(messageId) {
                         newMessages[index]
+                    }.options {
+                        this.parseMode = ParseMode.HTML
                     }.sendReturning(chat, bot).await().onFailure {
                         // we will get this if schedules matches for a curtain day, that's ok
                         if (it.errorCode == 400 && it.description == EDITED_MESSAGE_IS_THE_SAME_TG_ERROR) {
@@ -66,7 +69,9 @@ class EditPreviousOnChange : UpdateI {
     suspend fun sendNewMessages(chat: Chat, newSchedule: Map<DayOfWeek, Lessons>) {
         val newMessages = transformToMessage(newSchedule)
         val messagesIds = newMessages.map {
-            message(it).sendReturning(chat, bot).await().getOrNull()!!.messageId
+            message(it).options {
+                this.parseMode = ParseMode.HTML
+            }.sendReturning(chat, bot).await().getOrNull()!!.messageId
         }
         configurationRepository.setOldMessageIds(chat, messagesIds)
     }

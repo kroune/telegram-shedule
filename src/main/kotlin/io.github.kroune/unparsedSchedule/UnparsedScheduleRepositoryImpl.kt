@@ -3,7 +3,7 @@ package io.github.kroune.unparsedSchedule
 import com.google.api.services.sheets.v4.model.ValueRange
 import io.github.kroune.googleSheetsServiceRepository
 import io.github.kroune.retryableExitedOnFatal
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Gets schedule from Google sheets API
@@ -25,7 +25,7 @@ class UnparsedScheduleRepositoryImpl : UnparsedScheduleRepositoryI {
             require(values != null)
             require(values.isNotEmpty())
             values.map { it.map { it.toString() } }
-        }.retryableExitedOnFatal(retries = 30, delay = 20.seconds)
+        }.retryableExitedOnFatal(retries = 30, delay = 5.minutes)
         // we can use such delay, since schedule updates can be delayed without much of a damage
     }
 }

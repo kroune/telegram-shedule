@@ -1,6 +1,7 @@
 package io.github.kroune.updater
 
 import eu.vendeli.tgbot.api.message.message
+import eu.vendeli.tgbot.types.ParseMode
 import eu.vendeli.tgbot.types.chat.Chat
 import io.github.kroune.Notifier.transformToMessage
 import io.github.kroune.bot
@@ -25,7 +26,9 @@ class OutputNewOnChange: UpdateI {
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             transformToMessage(newSchedule).forEach {
-                message(it).send(chat, bot)
+                message(it).options {
+                    this.parseMode = ParseMode.HTML
+                }.send(chat, bot)
             }
         }
     }
