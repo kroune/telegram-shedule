@@ -1,8 +1,6 @@
 package io.github.kroune.updater
 
 import eu.vendeli.tgbot.types.chat.Chat
-import io.github.kroune.unparsedScheduleParser.Lessons
-import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,12 +17,23 @@ sealed interface UpdateI {
 
     /**
      * @param chat chat
-     * @param oldSchedule old schedule of this user or empty map if user hasn't received schedule yet
-     * @param newSchedule new schedule of this user
      */
-    fun notifyUserAboutChanges(
-        chat: Chat,
-        oldSchedule: Map<DayOfWeek, Lessons>,
-        newSchedule: Map<DayOfWeek, Lessons>
+    suspend fun notifyUserAboutChanges(
+        chat: Chat
     )
+
+    /**
+     * should only be called if the user has chosen class to watch
+     * forces re output of the schedule
+     * @param chat chat
+     */
+    suspend fun reOutput(
+        chat: Chat
+    )
+
+    /**
+     * @param chat chat
+     * what to do if user has switched from this mode
+     */
+    fun onChangedModeFrom(chat: Chat)
 }

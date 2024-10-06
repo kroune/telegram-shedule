@@ -1,4 +1,4 @@
-package io.github.kroune.tg.handler
+package io.github.kroune.tg.handler.admin
 
 import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.annotations.CommandHandler

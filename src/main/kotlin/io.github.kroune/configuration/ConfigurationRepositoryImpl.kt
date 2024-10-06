@@ -2,12 +2,14 @@ package io.github.kroune.configuration
 
 import eu.vendeli.tgbot.types.chat.Chat
 import io.github.kroune.CONFIGURATION_DIRECTORY
-import io.github.kroune.ScheduleUpdater.schedule
 import io.github.kroune.defaultOutputMode
 import io.github.kroune.jsonClient
 import io.github.kroune.retryableExitedOnFatal
 import io.github.kroune.unparsedScheduleParser.ClassName
 import io.github.kroune.updater.UpdateI
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -65,11 +67,9 @@ class ConfigurationRepositoryImpl : ConfigurationRepositoryI {
     }
 
     override fun setUserWatchedClass(chat: Chat, newClassName: String) {
-        getOutputMode(chat).notifyUserAboutChanges(
-            chat,
-            schedule[getWatchedClassForChat(chat)] ?: mapOf(),
-            schedule[newClassName] ?: mapOf()
-        )
+        CoroutineScope(Dispatchers.IO).launch {
+            getOutputMode(chat).notifyUserAboutChanges(chat)
+        }
         classNameToChats[getWatchedClassForChat(chat)]?.remove(chat)
         chatToClassName[chat] = newClassName
         classNameToChats.getOrPut(newClassName) {
@@ -97,6 +97,7 @@ class ConfigurationRepositoryImpl : ConfigurationRepositoryI {
 
     override fun deleteChat(chat: Chat) {
         classNameToChats[getWatchedClassForChat(chat)]?.remove(chat)
+        oldMessageIds.remove(chat)
         chatToClassName.remove(chat)
         outputModes.remove(chat)
         save()

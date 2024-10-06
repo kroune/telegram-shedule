@@ -36,9 +36,15 @@ object ScheduleUpdater {
          */
         fun setSchedule(schedule: Map<ClassName, Map<DayOfWeek, Lessons>>) {
             schedule.forEach { (className, schedule) ->
+                // checks if schedule for specific class has changed
                 val anyChanges = schedule != (privateCurrentSchedule[className] ?: mapOf<DayOfWeek, Lessons>())
                 if (anyChanges) {
-                    Notifier.processScheduleChange(className, privateCurrentSchedule[className] ?: mapOf(), schedule)
+                    configurationRepository.getClassWatchers(className).forEach { chat ->
+                        CoroutineScope(Dispatchers.IO).launch {
+                            // notify according to selected mode
+                            configurationRepository.getOutputMode(chat).notifyUserAboutChanges(chat)
+                        }
+                    }
                 }
             }
             privateCurrentSchedule = schedule

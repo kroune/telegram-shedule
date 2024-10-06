@@ -8,7 +8,8 @@ import io.github.kroune.configurationRepository
 
 
 /**
- * Simple pin - pong command to check if bot is running
+ * makes bot forget about chat
+ * (like if you don't like bot and want it to stop)
  */
 @CommandHandler(["/stop"])
 suspend fun stop(update: MessageUpdate, bot: TelegramBot) {

@@ -18,6 +18,10 @@ class RussianTranslationRepositoryImpl: TranslationRepositoryI {
     override val outputModeNotFound = "Формат вывода не найден"
     override val botInfo = "Бот создан @LichnyiSvetM, при возникновение проблем с ботом пишите в лс"
     override val editingOldMessagesFailedCommaResending = "Редактирование старых сообщений не удалось, отправляю новые"
+    override val scheduleHasChanged: String = "Расписание для выбранного класса обновилось (если это не так - свяжитесь с @LichnyiSvetM)"
+    override val youHaveNotChosenClassToWatchYet: String = "Вы еще не выбрали класс для получения расписания"
+    override val oldMessagesWereNotFound: String = "Старые сообщение не были найдены"
+    override val done: String = "Готово"
 
     override fun DayOfWeek.nameInLocalLang(): String {
         return when (this) {

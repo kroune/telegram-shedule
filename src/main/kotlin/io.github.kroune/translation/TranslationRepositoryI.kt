@@ -18,6 +18,10 @@ sealed interface TranslationRepositoryI {
     val outputModeNotFound: String
     val botInfo: String
     val editingOldMessagesFailedCommaResending: String
+    val scheduleHasChanged: String
+    val youHaveNotChosenClassToWatchYet: String
+    val oldMessagesWereNotFound: String
+    val done: String
 
     /**
      * Returns name of the day in local language

@@ -8,13 +8,11 @@ import eu.vendeli.tgbot.types.internal.getOrNull
 import eu.vendeli.tgbot.types.internal.onFailure
 import io.github.kroune.EDITED_MESSAGE_IS_THE_SAME_TG_ERROR
 import io.github.kroune.Notifier.transformToMessage
+import io.github.kroune.ScheduleUpdater
 import io.github.kroune.bot
 import io.github.kroune.configurationRepository
 import io.github.kroune.translationRepository
 import io.github.kroune.unparsedScheduleParser.Lessons
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 
@@ -25,16 +23,16 @@ import kotlinx.serialization.Serializable
 class EditPreviousOnChange : UpdateI {
     override val modeName: String = "EditPreviousOnChange"
 
-    override fun notifyUserAboutChanges(
-        chat: Chat,
-        oldSchedule: Map<DayOfWeek, Lessons>,
-        newSchedule: Map<DayOfWeek, Lessons>
+    override suspend fun notifyUserAboutChanges(
+        chat: Chat
     ) {
+        val watchedClass = configurationRepository.getWatchedClassForChat(chat)!!
+        val schedule = ScheduleUpdater.schedule[watchedClass]!!
         val oldMessages = configurationRepository.getOldMessageIds(chat)
-        val newMessages = transformToMessage(newSchedule)
+        val newMessages = transformToMessage(schedule)
         if (newMessages.size == oldMessages.size) {
             var isSuccess = true
-            CoroutineScope(Dispatchers.IO).launch {
+            run {
                 oldMessages.forEachIndexed { index, messageId ->
                     editMessageText(messageId) {
                         newMessages[index]
@@ -46,22 +44,29 @@ class EditPreviousOnChange : UpdateI {
                             return@onFailure
                         }
                         isSuccess = false
-                        return@launch
+                        return@run
                     }
                 }
+                message { translationRepository.scheduleHasChanged }.options {
+                    replyToMessageId = oldMessages.first()
+                }.send(chat, bot)
             }
             if (!isSuccess) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    message(translationRepository.editingOldMessagesFailedCommaResending).send(chat, bot)
-                    sendNewMessages(chat, newSchedule)
-                }
+                message(translationRepository.editingOldMessagesFailedCommaResending).send(chat, bot)
+                sendNewMessages(chat, schedule)
             }
         } else {
-            CoroutineScope(Dispatchers.IO).launch {
-                sendNewMessages(chat, newSchedule)
-            }
+            sendNewMessages(chat, schedule)
         }
     }
+
+    override suspend fun reOutput(chat: Chat) {
+        val watchedClass = configurationRepository.getWatchedClassForChat(chat)!!
+        val schedule = ScheduleUpdater.schedule[watchedClass]!!
+        sendNewMessages(chat, schedule)
+    }
+
+    override fun onChangedModeFrom(chat: Chat) {}
 
     /**
      * sends new messages, will happen when old are inaccessible or when mode is re chosen

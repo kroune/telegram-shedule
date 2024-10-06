@@ -1,6 +1,5 @@
 package io.github.kroune
 
-import io.github.kroune.unparsedScheduleParser.ClassName
 import io.github.kroune.unparsedScheduleParser.Lessons
 import kotlinx.datetime.DayOfWeek
 
@@ -39,19 +38,5 @@ object Notifier {
             messages.add("<b>$weekdayName</b>:\n${lessonInfo.joinToString(separator = "\n")}")
         }
         return messages
-    }
-
-    /**
-     * handles schedule updates for entire class
-     */
-    fun processScheduleChange(
-        className: ClassName,
-        oldSchedule: Map<DayOfWeek, Lessons>,
-        newSchedule: Map<DayOfWeek, Lessons>
-    ) {
-        configurationRepository.getClassWatchers(className).forEach { chat ->
-            // notify according to selected mode
-            configurationRepository.getOutputMode(chat).notifyUserAboutChanges(chat, oldSchedule, newSchedule)
-        }
     }
 }
