@@ -25,7 +25,7 @@ class GoogleSheetsServiceRepositoryImpl: GoogleSheetsRepositoryServiceI {
     private val tokensStoreDirectoryPath = "tokens"
 
     private val accessScopes = mutableListOf<String?>(SheetsScopes.SPREADSHEETS_READONLY)
-    private val credentialsFilePath = System.getenv("credentialsFilePath")
+    private val credentialsFilePath = System.getenv("credentialsFilePath")!!
 
     private fun getCredentials(httpTransport: NetHttpTransport?): Credential {
          return {

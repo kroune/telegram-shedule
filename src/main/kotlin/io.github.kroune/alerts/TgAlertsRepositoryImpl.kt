@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 class TgAlertsRepositoryImpl: AlertsRepositoryI {
     override fun alert(message: String): Job {
         return CoroutineScope(Dispatchers.IO).launch {
+            println(message)
             message { message }.send(ADMIN_TG_CHAT_ID, bot)
         }
     }

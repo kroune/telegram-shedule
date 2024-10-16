@@ -1,0 +1,29 @@
+name: Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    timeout-minutes: 525600
+    runs-on: self-hosted
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+      - name: Set up JDK 20
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 20
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Setup credentials
+        run: |
+          rm -f credentials.json
+          touch credentials.json
+          echo ${{ secrets.CREDENTIALS }} | base64 -d >> credentials.json
+      - name: Run
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          credentialsFilePath: credentials.json
+        run: gradle run
