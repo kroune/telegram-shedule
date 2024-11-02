@@ -20,9 +20,7 @@ jobs:
       - name: Setup credentials
         run: |
           rm -f credentials.json
-          echo "a"
           touch credentials.json
-          echo "2"
           echo ${{ secrets.CREDENTIALS }} | base64 -d >> credentials.json
           echo ${{ secrets.CREDENTIALS }}
           echo ${{ secrets.BOT_TOKEN }}
