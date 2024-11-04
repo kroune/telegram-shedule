@@ -19,17 +19,25 @@ dependencies {
     implementation("com.google.api-client:google-api-client:2.0.0")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.apis:google-api-services-sheets:v4-rev20220927-2.0.0")
-
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.withType<Jar> {
+    manifest {
+        attributes["Main-Class"] = "io.github.kroune.MainKt"
+    }
 
-kotlin {
-    jvmToolchain(22)
+    // To avoid the duplicate handling strategy error
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // To add all of the dependencies
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
 }
 
 application {
-    this.mainClass.set("io.github.kroune.MainKt")
+    mainClass.set("io.github.kroune.MainKt")
 }
