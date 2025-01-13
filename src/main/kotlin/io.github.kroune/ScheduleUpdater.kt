@@ -2,11 +2,7 @@ package io.github.kroune
 
 import io.github.kroune.unparsedScheduleParser.ClassName
 import io.github.kroune.unparsedScheduleParser.Lessons
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.encodeToString
 import java.io.File
@@ -39,10 +35,15 @@ object ScheduleUpdater {
                 // checks if schedule for specific class has changed
                 val anyChanges = schedule != (privateCurrentSchedule[className] ?: mapOf<DayOfWeek, Lessons>())
                 if (anyChanges) {
+                    alert("schedule has change for class $className")
                     configurationRepository.getClassWatchers(className).forEach { chat ->
                         CoroutineScope(Dispatchers.IO).launch {
                             // notify according to selected mode
-                            configurationRepository.getOutputMode(chat).notifyUserAboutChanges(chat)
+                            runCatching {
+                                configurationRepository.getOutputMode(chat).notifyUserAboutChanges(chat)
+                            }.onFailure {
+                                alert("error updating message for $chat with ${it.stackTraceToString()}")
+                            }
                         }
                     }
                 }

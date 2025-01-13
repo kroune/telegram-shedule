@@ -15,10 +15,11 @@ import com.google.api.services.sheets.v4.SheetsScopes
 import io.github.kroune.retryableExitedOnFatal
 import java.io.File
 
+
 /**
  * Provides Google Sheets service, using credentials.json file in resources folder
  */
-class GoogleSheetsServiceRepositoryImpl: GoogleSheetsRepositoryServiceI {
+class GoogleSheetsServiceRepositoryImpl : GoogleSheetsRepositoryServiceI {
     private val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val applicationName = "Google Sheets API for schedule extractor"
     private val jsonFactory = GsonFactory.getDefaultInstance()
@@ -28,7 +29,7 @@ class GoogleSheetsServiceRepositoryImpl: GoogleSheetsRepositoryServiceI {
     private val credentialsFilePath = System.getenv("credentialsFilePath")!!
 
     private fun getCredentials(httpTransport: NetHttpTransport?): Credential {
-         return {
+        return {
             val credentials = File(credentialsFilePath).reader()
             val clientSecrets = GoogleClientSecrets.load(jsonFactory, credentials)
 
@@ -37,6 +38,7 @@ class GoogleSheetsServiceRepositoryImpl: GoogleSheetsRepositoryServiceI {
             )
                 .setDataStoreFactory(FileDataStoreFactory(File(tokensStoreDirectoryPath)))
                 .setAccessType("offline")
+                .setApprovalPrompt("force")
                 .build()
             val receiver = LocalServerReceiver.Builder().setPort(8888).build()
             AuthorizationCodeInstalledApp(flow, receiver).authorize("user")

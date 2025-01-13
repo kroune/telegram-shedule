@@ -157,3 +157,11 @@ suspend fun <F : suspend () -> T, T> F.suspendRetryable(
 fun alert(message: String): Job {
     return alertsRepository.alert(message)
 }
+
+
+/**
+ * Alerts me using [alertsRepository]
+ */
+fun alert(message: () -> String): Job {
+    return alert(message())
+}
