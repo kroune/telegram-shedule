@@ -10,6 +10,9 @@ import eu.vendeli.tgbot.types.internal.MessageUpdate
 import eu.vendeli.tgbot.types.internal.getOrNull
 import io.github.kroune.ADMIN_TG_ALERT_CHAT_ID
 
+/**
+ * used for debug purpose
+ */
 @UnprocessedHandler
 suspend fun unprocessedHandler(update: MessageUpdate, user: User, bot: TelegramBot) {
     // debug logging

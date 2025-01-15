@@ -39,6 +39,9 @@ sealed interface ConfigurationRepositoryI {
      */
     fun getOutputMode(chat: Chat): UpdateI
 
+    /**
+     * @return list of all chats, where bot is present
+     */
     fun getChats(): List<Chat>
 
     /**
