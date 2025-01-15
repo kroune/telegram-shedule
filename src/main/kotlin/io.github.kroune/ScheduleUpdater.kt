@@ -31,9 +31,11 @@ object ScheduleUpdater {
          * updates schedule and notifies about changes
          */
         fun setSchedule(schedule: Map<ClassName, Map<DayOfWeek, Lessons>>) {
+            val oldSchedule = privateCurrentSchedule.toMutableMap()
+            setScheduleWithoutNotifications(schedule)
             schedule.forEach { (className, schedule) ->
                 // checks if schedule for specific class has changed
-                val anyChanges = schedule != (privateCurrentSchedule[className] ?: mapOf<DayOfWeek, Lessons>())
+                val anyChanges = schedule != (oldSchedule[className] ?: mapOf<DayOfWeek, Lessons>())
                 if (anyChanges) {
                     alert("schedule has change for class $className")
                     configurationRepository.getClassWatchers(className).forEach { chat ->
@@ -48,7 +50,6 @@ object ScheduleUpdater {
                     }
                 }
             }
-            privateCurrentSchedule = schedule
             save()
         }
 

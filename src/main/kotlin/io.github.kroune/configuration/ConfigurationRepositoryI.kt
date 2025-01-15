@@ -39,6 +39,8 @@ sealed interface ConfigurationRepositoryI {
      */
     fun getOutputMode(chat: Chat): UpdateI
 
+    fun getChats(): List<Chat>
+
     /**
      * deletes user from the configuration
      */

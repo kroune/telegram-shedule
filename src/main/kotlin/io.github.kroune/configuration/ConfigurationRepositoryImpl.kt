@@ -15,7 +15,14 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import java.io.File
+import kotlin.collections.List
+import kotlin.collections.MutableMap
+import kotlin.collections.emptyList
 import kotlin.collections.get
+import kotlin.collections.getOrPut
+import kotlin.collections.hashMapOf
+import kotlin.collections.map
+import kotlin.collections.set
 
 /**
  * Default implementation of [ConfigurationRepositoryI].
@@ -35,6 +42,10 @@ class ConfigurationRepositoryImpl : ConfigurationRepositoryI {
         @EncodeDefault(EncodeDefault.Mode.ALWAYS)
         val oldMessageIds: MutableMap<Chat, List<Long>> = hashMapOf()
     )
+
+    override fun getChats(): List<Chat> {
+        return chatToClassName.map { it.key }
+    }
 
     private fun save() {
         {
